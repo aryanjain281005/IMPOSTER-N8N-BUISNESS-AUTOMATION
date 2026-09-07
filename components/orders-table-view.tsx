@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { DataTable } from "@/components/data-table";
@@ -17,23 +17,45 @@ export function OrdersTableView({ orders }: { orders: Order[] }) {
   const [activeTab, setActiveTab] = useState("all");
   const [globalFilter, setGlobalFilter] = useState("");
 
-  const columns = useMemo(() => getColumns(), []);
+  // Local state for optimistic UI updates
+  const [optimisticOrders, setOptimisticOrders] = useState<Order[]>(orders);
+
+  // Sync local state when prop changes (e.g., after server action revalidates)
+  useMemo(() => {
+    setOptimisticOrders(orders);
+  }, [orders]);
+
+  const handleOptimisticUpdate = useCallback(
+    (rowIndex: number, field: "paymentStatus" | "designStatus", value: string) => {
+      setOptimisticOrders((prev) =>
+        prev.map((o) => {
+          if (o.rowIndex === rowIndex) {
+            return { ...o, [field]: value };
+          }
+          return o;
+        })
+      );
+    },
+    []
+  );
+
+  const columns = useMemo(() => getColumns(handleOptimisticUpdate), [handleOptimisticUpdate]);
 
   const filteredOrders = useMemo(() => {
     switch (activeTab) {
       case "action":
-        return orders.filter(
+        return optimisticOrders.filter(
           (o) => o.paymentStatus === "PENDING" || o.designStatus === "WAITING"
         );
       case "completed":
-        return orders.filter((o) => o.orderStatus === "COMPLETED");
+        return optimisticOrders.filter((o) => o.orderStatus === "COMPLETED");
       default:
-        return orders;
+        return optimisticOrders;
     }
-  }, [orders, activeTab]);
+  }, [optimisticOrders, activeTab]);
 
-  const total = orders.length;
-  const actionRequired = orders.filter(
+  const total = optimisticOrders.length;
+  const actionRequired = optimisticOrders.filter(
     (o) => o.paymentStatus === "PENDING" || o.designStatus === "WAITING"
   ).length;
 
