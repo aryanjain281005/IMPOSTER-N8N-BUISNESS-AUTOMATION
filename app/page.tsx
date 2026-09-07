@@ -1,4 +1,4 @@
-import { OrdersDashboard } from "@/components/orders-dashboard";
+import { StatsDashboard } from "@/components/stats-dashboard";
 import { fetchOrders } from "@/app/actions/orders";
 import type { Order } from "@/lib/types";
 
@@ -11,9 +11,8 @@ export default async function DashboardPage() {
     orders = await fetchOrders();
   } catch (error) {
     console.error("Failed to fetch orders:", error);
-    // Render the dashboard with empty state so the UI still loads
     orders = [];
   }
 
-  return <OrdersDashboard orders={orders} />;
+  return <StatsDashboard orders={orders} />;
 }

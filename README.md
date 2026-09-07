@@ -17,17 +17,16 @@ There are two major n8n workflows powering the business:
 ### Automation 1: Order Intake & Preparation
 When a customer submits the Google Form, this workflow automatically triggers to process the raw data:
 - **Pricing Engine:** Dynamically calculates the exact total price (handling single prints vs. 5-packs for both A3 and A4 sizes).
-- **Validation:** Normalizes the data, verifies quantities against uploaded files, and cross-references requested catalog numbers with a master Catalog database.
+- **Validation:** Normalizes the data, verifies quantities against uploaded files, and cross-references requested catalog numbers with the expanded master Catalog database (now supporting 120+ designs).
 - **Order ID Generation:** Creates a unique, production-safe Order ID (e.g., `IMP-260828-154313-ABCDEF`).
 - **Google Drive Generation:** Automatically creates a structured Google Drive folder hierarchy (`Order ID - Customer Name` > `INPUT`, `CATALOG`, `FINAL` > `A3`, `A4`).
 - **File Routing:** Copies the customer's uploaded files and the chosen IMPOSTER Catalog files directly into their respective folders, ready for the print team.
 - **Database Entry:** Finally, it writes the clean, processed order into the `orders` Google Sheet (which immediately appears on this Next.js Dashboard).
 
-### Automation 2: Fulfillment & Dispatch
+### Automation 2: Fulfillment & Dispatch (Optimized)
 When the print team finishes finalizing the designs, they change the "Design Status" on this Next.js Dashboard to **"READY"**. That single click triggers this workflow:
-- **Zip Generation:** n8n automatically finds the `FINAL` folder in Google Drive, downloads the print-ready images, and zips them into a single archive (`Order ID-Final.zip`).
-- **Cloud Upload:** Uploads the Zip file back to Google Drive and creates a public sharing link.
-- **WhatsApp Generation:** Generates a personalized WhatsApp message containing the customer's details, dynamic payment instructions (Cash vs. Online), and the Zip preview link so the customer can verify their prints.
+- **Folder Sharing:** Instead of slowly downloading and zipping large image files, n8n instantly locates the existing `FINAL` folder in Google Drive and updates its permissions to generate a public viewer link.
+- **WhatsApp Generation:** Generates a personalized WhatsApp message containing the customer's details, dynamic payment instructions (Cash vs. Online), and the direct folder link so the customer can verify their high-quality prints.
 - **Dashboard Update:** Updates the Next.js Dashboard with the generated WhatsApp link and marks the status as "READY TO SEND", allowing admins to dispatch the message with a single click.
 
 ---
