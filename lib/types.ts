@@ -6,7 +6,7 @@ export type DesignStatus = "WAITING" | "READY";
 export type PaymentMode = "Cash" | "Online" | "UPI";
 export type PrintStatus = "NOT_READY" | "PENDING" | "PRINTING" | "DONE";
 export type WhatsAppStatus = "NOT_SENT" | "SENT";
-export type OrderStatus = "NEW" | "PROCESSING" | "COMPLETED" | "CANCELLED";
+export type OrderStatus = "NEW" | "PROCESSING" | "COMPLETED" | "CANCELLED" | "DELIVERED" | "RECEIVED";
 
 export interface Order {
   orderId: string;

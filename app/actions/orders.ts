@@ -80,3 +80,25 @@ export async function updateDesignStatusAction(
     };
   }
 }
+
+/**
+ * Server Action: Update the Main Order Status for an order.
+ * @param rowIndex - 1-indexed row number in the sheet
+ * @param value - The new OrderStatus value
+ */
+export async function updateMainOrderStatusAction(
+  rowIndex: number,
+  value: import("@/lib/types").OrderStatus
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await updateOrderStatus(rowIndex, "Order Status", value);
+    revalidatePath("/");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to update Main Order Status:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}

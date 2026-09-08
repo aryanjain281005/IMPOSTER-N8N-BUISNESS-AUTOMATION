@@ -24,6 +24,7 @@ import type {
 import {
   updatePaymentStatusAction,
   updateDesignStatusAction,
+  updateMainOrderStatusAction,
 } from "@/app/actions/orders";
 
 // WhatsApp SVG icon component for the branded button
@@ -47,7 +48,7 @@ function WhatsAppIcon({ className }: { className?: string }) {
 export function getColumns(
   onOptimisticUpdate: (
     rowIndex: number,
-    field: "paymentStatus" | "designStatus",
+    field: "paymentStatus" | "designStatus" | "orderStatus",
     value: string
   ) => void
 ): ColumnDef<Order>[] {
@@ -284,16 +285,77 @@ export function getColumns(
       accessorKey: "orderStatus",
       header: "Order",
       cell: ({ row }) => {
-        const status = row.getValue("orderStatus") as string;
+        const order = row.original;
+        const status = order.orderStatus;
         const variant =
-          status === "COMPLETED"
+          status === "COMPLETED" || status === "DELIVERED" || status === "RECEIVED"
             ? "success"
             : status === "CANCELLED"
             ? "destructive"
             : status === "PROCESSING"
             ? "info"
             : "secondary";
-        return <Badge variant={variant}>{status}</Badge>;
+
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-[100px] justify-between px-2 text-xs"
+              >
+                <Badge variant={variant} className="mr-1">
+                  {status}
+                </Badge>
+                <ChevronDown className="size-3 text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-[140px]">
+              <DropdownMenuLabel className="text-xs font-semibold">
+                Set Order Status
+              </DropdownMenuLabel>
+              {[
+                "NEW",
+                "PROCESSING",
+                "COMPLETED",
+                "DELIVERED",
+                "RECEIVED",
+                "CANCELLED",
+              ].map((val) => (
+                <DropdownMenuItem
+                  key={val}
+                  onClick={async () => {
+                    if (val === status) return;
+                    onOptimisticUpdate(order.rowIndex, "orderStatus", val);
+                    const result = await updateMainOrderStatusAction(
+                      order.rowIndex,
+                      val as import("@/lib/types").OrderStatus
+                    );
+                    if (!result.success) {
+                      onOptimisticUpdate(order.rowIndex, "orderStatus", status);
+                      alert(`Failed to update: ${result.error}`);
+                    }
+                  }}
+                >
+                  <Badge
+                    variant={
+                      val === "COMPLETED" || val === "DELIVERED" || val === "RECEIVED"
+                        ? "success"
+                        : val === "CANCELLED"
+                        ? "destructive"
+                        : val === "PROCESSING"
+                        ? "info"
+                        : "secondary"
+                    }
+                    className="text-xs"
+                  >
+                    {val}
+                  </Badge>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
       },
     },
     {

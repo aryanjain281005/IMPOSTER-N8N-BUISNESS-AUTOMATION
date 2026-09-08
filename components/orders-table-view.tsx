@@ -26,7 +26,7 @@ export function OrdersTableView({ orders }: { orders: Order[] }) {
   }, [orders]);
 
   const handleOptimisticUpdate = useCallback(
-    (rowIndex: number, field: "paymentStatus" | "designStatus", value: string) => {
+    (rowIndex: number, field: "paymentStatus" | "designStatus" | "orderStatus", value: string) => {
       setOptimisticOrders((prev) =>
         prev.map((o) => {
           if (o.rowIndex === rowIndex) {
