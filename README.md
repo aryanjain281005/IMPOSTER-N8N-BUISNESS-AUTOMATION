@@ -1,3 +1,4 @@
+<img width="737" height="443" alt="Screenshot 2026-09-11 at 2 37 35 PM" src="https://github.com/user-attachments/assets/129d9b6b-c7fe-4040-afd0-27bcc094883d" />
 # IMPOSTER Admin Dashboard
 
 Welcome to the IMPOSTER Admin Dashboard! This is a web application built to help you manage poster printing orders. It connects directly to your Google Sheet to read and update data, and it can talk to your n8n automations.
@@ -22,6 +23,8 @@ When a customer submits the Google Form, this workflow automatically triggers to
 - **Google Drive Generation:** Automatically creates a structured Google Drive folder hierarchy (`Order ID - Customer Name` > `INPUT`, `CATALOG`, `FINAL` > `A3`, `A4`).
 - **File Routing:** Copies the customer's uploaded files and the chosen IMPOSTER Catalog files directly into their respective folders, ready for the print team.
 - **Database Entry:** Finally, it writes the clean, processed order into the `orders` Google Sheet (which immediately appears on this Next.js Dashboard).
+- <img width="2048" height="1123" alt="image" src="https://github.com/user-attachments/assets/587f9117-1130-484e-b72e-62d46990a455" />
+
 
 ### Automation 2: Fulfillment & Dispatch (Optimized)
 When the print team finishes finalizing the designs, they change the "Design Status" on this Next.js Dashboard to **"READY"**. That single click triggers this workflow:
@@ -30,6 +33,8 @@ When the print team finishes finalizing the designs, they change the "Design Sta
 - **Dashboard Update:** Updates the Next.js Dashboard with the generated WhatsApp link and marks the status as "READY TO SEND", allowing admins to dispatch the message with a single click.
 
 ---
+<img width="2048" height="1128" alt="image" src="https://github.com/user-attachments/assets/eefd0e10-f76e-45ac-aa15-4bf0b98b94eb" />
+
 
 ## 1. The Tech Stack (What it's built with)
 
@@ -88,6 +93,8 @@ To run the dashboard locally on your computer:
 4. Open your browser and go to `http://localhost:3000`.
 
 ---
+<img width="2048" height="1153" alt="image" src="https://github.com/user-attachments/assets/4b6e53c7-1c2c-41de-9a0d-321016695e5b" />
+
 
 ## Frequently Asked Questions
 
@@ -98,3 +105,10 @@ NO. The dashboard is completely decoupled from n8n. The dashboard only talks to 
 
 **What happens if I change the Google Sheet columns?**
 If you rearrange the columns, rename the headers, or add new columns in the middle of your sheet, the dashboard might get confused because it reads data based on the exact column locations defined in `lib/types.ts`. If you modify your sheet structure heavily, you will need to update the `COLUMN_MAP` in `lib/types.ts` to match the new layout.
+
+
+
+the workflows are---
+IMPOSTER — Order Intake
+IMPOSTER — Fulfillment & Dispatch
+
