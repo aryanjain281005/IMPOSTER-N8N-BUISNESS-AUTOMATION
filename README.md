@@ -1,4 +1,4 @@
-<img width="737" height="443" alt="Screenshot 2026-09-11 at 2 37 35 PM" src="https://github.com/user-attachments/assets/129d9b6b-c7fe-4040-afd0-27bcc094883d" />
+
 # IMPOSTER Admin Dashboard
 
 Welcome to the IMPOSTER Admin Dashboard! This is a web application built to help you manage poster printing orders. It connects directly to your Google Sheet to read and update data, and it can talk to your n8n automations.
