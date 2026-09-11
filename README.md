@@ -109,6 +109,6 @@ If you rearrange the columns, rename the headers, or add new columns in the midd
 
 
 the workflows are---
-IMPOSTER — Order Intake
-IMPOSTER — Fulfillment & Dispatch
+IMPOSTER — Order Intake.json and 
+IMPOSTER — Fulfillment & Dispatch.json
 
