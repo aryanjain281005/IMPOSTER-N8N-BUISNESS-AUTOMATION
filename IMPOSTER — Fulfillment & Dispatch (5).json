@@ -1,0 +1,1029 @@
+{
+  "name": "IMPOSTER — Fulfillment & Dispatch",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "19fL8p9uT8O2yeguoChzpkkTgM3tqQBdCPDgMA92yvFQ",
+          "mode": "list",
+          "cachedResultName": "IMPOSTER — Custom Poster Order (Responses)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19fL8p9uT8O2yeguoChzpkkTgM3tqQBdCPDgMA92yvFQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1082351312,
+          "mode": "list",
+          "cachedResultName": "orders",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19fL8p9uT8O2yeguoChzpkkTgM3tqQBdCPDgMA92yvFQ/edit#gid=1082351312"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": "={{ $('Google Sheets Trigger').first().json.row_number }}",
+            "WhatsApp Status": "READY TO SEND",
+            "ZIP Link": "={{ $json.zip_link }}",
+            "WhatsApp Link": "={{ $json.whatsapp_link }}"
+          },
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "Order ID",
+              "displayName": "Order ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Created At",
+              "displayName": "Created At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Customer Name",
+              "displayName": "Customer Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "WhatsApp",
+              "displayName": "WhatsApp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Branch",
+              "displayName": "Branch",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Year",
+              "displayName": "Year",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Hostel",
+              "displayName": "Hostel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "A3 Quantity",
+              "displayName": "A3 Quantity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "A3 Source",
+              "displayName": "A3 Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "A3 Catalog Numbers",
+              "displayName": "A3 Catalog Numbers",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "A3 Custom File",
+              "displayName": "A3 Custom File",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "A4 Quantity",
+              "displayName": "A4 Quantity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "A4 Source",
+              "displayName": "A4 Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "A4 Catalog Numbers",
+              "displayName": "A4 Catalog Numbers",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "A4 Custom File",
+              "displayName": "A4 Custom File",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "A3 Price",
+              "displayName": "A3 Price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "A4 Price",
+              "displayName": "A4 Price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total Price",
+              "displayName": "Total Price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Payment Mode",
+              "displayName": "Payment Mode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Payment Screenshot",
+              "displayName": "Payment Screenshot",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Payment Status",
+              "displayName": "Payment Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Design Status",
+              "displayName": "Design Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Canva A3",
+              "displayName": "Canva A3",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Canva A4",
+              "displayName": "Canva A4",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Print Status",
+              "displayName": "Print Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "WhatsApp Status",
+              "displayName": "WhatsApp Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Order Status",
+              "displayName": "Order Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ZIP Link",
+              "displayName": "ZIP Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "WhatsApp Link",
+              "displayName": "WhatsApp Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1904,
+        -368
+      ],
+      "id": "8808c9d4-4476-438e-82a0-35a31ccfa504",
+      "name": "Update Order Dashboard",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "lIot91AXTdIPqcaz",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "='{{ $json.id }}' in parents and mimeType != 'application/vnd.google-apps.folder'",
+        "returnAll": true,
+        "filter": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1728,
+        400
+      ],
+      "id": "40cf98a2-0847-487f-9d97-3b488f1382bf",
+      "name": "List A3 Files",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "chHxRlOdwW5wFzDW",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "=name = 'A3' and '{{ $('Find FINAL Folder').first().json.id }}' in parents and mimeType = 'application/vnd.google-apps.folder'",
+        "returnAll": true,
+        "filter": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1152,
+        256
+      ],
+      "id": "d57595e7-6ebb-496e-9971-cc0fca8800eb",
+      "name": "Find A3 Subfolder",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "chHxRlOdwW5wFzDW",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "copy",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "name": "={{ $('Google Sheets Trigger').first().json['Customer Name'] }} - {{ $json.name }}",
+        "sameFolder": false,
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "=16hoqQfsYRemDCl_pZGxEkJIFQb6zS-bm",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2400,
+        544
+      ],
+      "id": "e2b41953-d5a5-4183-b217-c151af86247f",
+      "name": "Copy file3",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "chHxRlOdwW5wFzDW",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "='{{ $json.id }}' in parents and mimeType != 'application/vnd.google-apps.folder'",
+        "returnAll": true,
+        "filter": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1744,
+        592
+      ],
+      "id": "d542432f-4312-4349-b6d8-a563490f3eff",
+      "name": "Search files and folders",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "chHxRlOdwW5wFzDW",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "=name = 'A4' and '{{ $('Find FINAL Folder').first().json.id }}' in parents and mimeType = 'application/vnd.google-apps.folder'",
+        "filter": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1120,
+        416
+      ],
+      "id": "6983c586-cc0b-4ce1-9ed4-f7f869c2c70a",
+      "name": "Both\" Branch — A4 Files",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "chHxRlOdwW5wFzDW",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "copy",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "name": "={{ $('Google Sheets Trigger').first().json['Customer Name'] }} - {{ $json.name }}",
+        "sameFolder": false,
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "=1oE7XoMLK-tnuvvgUlXDKsRdEjwUbR0Rz",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2640,
+        224
+      ],
+      "id": "1b289c18-4f40-4901-8fc5-f04d88d35e46",
+      "name": "Copy file2",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "chHxRlOdwW5wFzDW",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "copy",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "name": "={{ $('Google Sheets Trigger').first().json['Customer Name'] }} - {{ $json.name }}",
+        "sameFolder": false,
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "16hoqQfsYRemDCl_pZGxEkJIFQb6zS-bm",
+          "mode": "list",
+          "cachedResultName": "MASTER A4",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/16hoqQfsYRemDCl_pZGxEkJIFQb6zS-bm"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1728,
+        192
+      ],
+      "id": "e7a1c90f-139f-4fe9-b68e-67507f71dbe9",
+      "name": "Copy file1",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "chHxRlOdwW5wFzDW",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "='{{ $('Find FINAL Folder').first().json.id }}' in parents and mimeType != 'application/vnd.google-apps.folder'",
+        "returnAll": true,
+        "filter": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1152,
+        144
+      ],
+      "id": "a6170a9e-108b-4cbb-9238-fa5abe5f4f89",
+      "name": "A4 Only",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "chHxRlOdwW5wFzDW",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "copy",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "name": "={{ $('Google Sheets Trigger').first().json['Customer Name'] }} - {{ $json.name }}",
+        "sameFolder": false,
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1oE7XoMLK-tnuvvgUlXDKsRdEjwUbR0Rz",
+          "mode": "list",
+          "cachedResultName": "MASTER A3",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1oE7XoMLK-tnuvvgUlXDKsRdEjwUbR0Rz"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1696,
+        0
+      ],
+      "id": "b4b14898-a1e5-425e-89a4-f0a99829c08f",
+      "name": "Copy file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "chHxRlOdwW5wFzDW",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "='{{ $('Find FINAL Folder').first().json.id }}' in parents and mimeType != 'application/vnd.google-apps.folder'",
+        "returnAll": true,
+        "filter": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1152,
+        32
+      ],
+      "id": "568ec06c-8528-4ae3-bc83-864a809a5e18",
+      "name": "A3 Only",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "chHxRlOdwW5wFzDW",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ ($('Google Sheets Trigger').first().json['A3 Quantity'] > 0 && $('Google Sheets Trigger').first().json['A4 Quantity'] > 0) ? 'Both' : ($('Google Sheets Trigger').first().json['A3 Quantity'] > 0 ? 'A3' : 'A4') }}",
+                    "rightValue": "A3",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "30ffe104-3e11-4c8f-afa0-5edc6eb43244"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "1fc7bbf9-24de-4583-a35e-b6c63cfc8ef7",
+                    "leftValue": "={{ ($('Google Sheets Trigger').first().json['A3 Quantity'] > 0 && $('Google Sheets Trigger').first().json['A4 Quantity'] > 0) ? 'Both' : ($('Google Sheets Trigger').first().json['A3 Quantity'] > 0 ? 'A3' : 'A4') }}",
+                    "rightValue": "A4",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "b9ddb09c-4bf5-4546-918c-3cb1dba3e79c",
+                    "leftValue": "={{ ($('Google Sheets Trigger').first().json['A3 Quantity'] > 0 && $('Google Sheets Trigger').first().json['A4 Quantity'] > 0) ? 'Both' : ($('Google Sheets Trigger').first().json['A3 Quantity'] > 0 ? 'A3' : 'A4') }}",
+                    "rightValue": "Both",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        768,
+        240
+      ],
+      "id": "fed066f2-4bbb-4c09-a1f8-6d7dcb9ca091",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Get the order data and the FINAL folder ID\nconst order = $('Google Sheets Trigger').first().json;\nconst folderId = $('Find FINAL Folder').first().json.id;\n\n// 2. Construct the direct link to the Drive folder\nconst folderLink = `https://drive.google.com/drive/folders/${folderId}`;\n\nlet message = \"\";\n\n// 3. Check the payment mode and write the dynamic message\nif (order[\"Payment Mode\"] === \"Cash\") {\n    message = `Hi ${order[\"Customer Name\"]}! Your IMPOSTER order is ready for print.\\n\\nPlease check this folder link to verify your chosen designs, ensure there are no errors, and see the exact high quality you will get in the final print: ${folderLink}\\n\\nYour total is ₹${order[\"Total Price\"]}. Since you chose Cash, please note that we collect payment in advance before printing.`;\n} else {\n    message = `Hi ${order[\"Customer Name\"]}! Your IMPOSTER order is received and we are verifying your payment screenshot.\\n\\nPlease check this folder link to verify your chosen designs, ensure there are no errors, and see the exact high quality you will get in the final print: ${folderLink}\\n\\nYour total is ₹${order[\"Total Price\"]}. We will process your print and deliver it to your hostel soon!`;\n}\n\n// 4. Format the WhatsApp number\nlet phone = order[\"WhatsApp\"].toString().replace(/\\D/g, '');\nif (phone.length === 10) {\n    phone = \"91\" + phone;\n}\n\n// 5. Create the final clickable URL\nconst waLink = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;\n\n// 6. Output the data\nreturn [{\n    json: {\n        whatsapp_message: message,\n        whatsapp_link: waLink,\n        zip_link: folderLink // Kept as zip_link so your Sheets node doesn't break\n    }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1488,
+        -288
+      ],
+      "id": "5eaaa1c1-3988-4701-99a4-a3f384a92e5b",
+      "name": "Generate WhatsApp Link"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://www.googleapis.com/drive/v3/files/{{ $('Find FINAL Folder').first().json.id }}/permissions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"role\": \"reader\",\n  \"type\": \"anyone\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1136,
+        -256
+      ],
+      "id": "a7e2042c-eedd-40f4-a571-95baa636865d",
+      "name": "Create Public Link.",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "chHxRlOdwW5wFzDW",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "=name = 'FINAL' and '{{ $json.id }}' in parents and mimeType = 'application/vnd.google-apps.folder'",
+        "limit": 1,
+        "filter": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        864,
+        -224
+      ],
+      "id": "deb962fb-332f-4410-9cf9-0e69a7578e60",
+      "name": "Find FINAL Folder",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "chHxRlOdwW5wFzDW",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "=name contains '{{ $json[\"Order ID\"] }}' and mimeType = 'application/vnd.google-apps.folder'",
+        "filter": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        560,
+        -208
+      ],
+      "id": "da6723e2-f8de-4b04-aa64-984f00b6a8ff",
+      "name": "Find Order Folder",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "chHxRlOdwW5wFzDW",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "19fL8p9uT8O2yeguoChzpkkTgM3tqQBdCPDgMA92yvFQ",
+          "mode": "list",
+          "cachedResultName": "IMPOSTER — Custom Poster Order (Responses)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19fL8p9uT8O2yeguoChzpkkTgM3tqQBdCPDgMA92yvFQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1082351312,
+          "mode": "list",
+          "cachedResultName": "orders",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19fL8p9uT8O2yeguoChzpkkTgM3tqQBdCPDgMA92yvFQ/edit#gid=1082351312"
+        },
+        "event": "rowUpdate",
+        "options": {
+          "columnsToWatch": [
+            "Design Status"
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        96,
+        32
+      ],
+      "id": "7d80d750-c5b3-4286-9cd1-f1988bae29d1",
+      "name": "Google Sheets Trigger",
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "bQbECcLI6j08ujXQ",
+          "name": "Google Sheets Trigger account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Find A3 Subfolder": {
+      "main": [
+        [
+          {
+            "node": "List A3 Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search files and folders": {
+      "main": [
+        [
+          {
+            "node": "Copy file3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Both\" Branch — A4 Files": {
+      "main": [
+        [
+          {
+            "node": "Search files and folders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List A3 Files": {
+      "main": [
+        [
+          {
+            "node": "Copy file2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "A4 Only": {
+      "main": [
+        [
+          {
+            "node": "Copy file1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "A3 Only": {
+      "main": [
+        [
+          {
+            "node": "Copy file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "A3 Only",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "A4 Only",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Both\" Branch — A4 Files",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Find A3 Subfolder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate WhatsApp Link": {
+      "main": [
+        [
+          {
+            "node": "Update Order Dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Public Link.": {
+      "main": [
+        [
+          {
+            "node": "Generate WhatsApp Link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find FINAL Folder": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create Public Link.",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Order Folder": {
+      "main": [
+        [
+          {
+            "node": "Find FINAL Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets Trigger": {
+      "main": [
+        [
+          {
+            "node": "Find Order Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "709459f1-4ee1-4537-a663-ea0895103999",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "97da335727f65ec299f14a8d3c6b5fa40e6eeaa641390507e47a78c32dd8f544"
+  },
+  "nodeGroups": [],
+  "id": "VEReiYwZlZN6Nee4",
+  "tags": []
+}

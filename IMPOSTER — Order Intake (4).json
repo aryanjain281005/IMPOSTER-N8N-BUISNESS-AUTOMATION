@@ -1,0 +1,1458 @@
+{
+  "name": "IMPOSTER — Order Intake",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "19fL8p9uT8O2yeguoChzpkkTgM3tqQBdCPDgMA92yvFQ",
+          "mode": "list",
+          "cachedResultName": "IMPOSTER — Custom Poster Order (Responses)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19fL8p9uT8O2yeguoChzpkkTgM3tqQBdCPDgMA92yvFQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1415199373,
+          "mode": "list",
+          "cachedResultName": "Form Responses 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19fL8p9uT8O2yeguoChzpkkTgM3tqQBdCPDgMA92yvFQ/edit#gid=1415199373"
+        },
+        "event": "rowAdded",
+        "options": {
+          "valueRender": "UNFORMATTED_VALUE"
+        }
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        -3424,
+        304
+      ],
+      "id": "49326245-e4fc-40ad-843d-7cdde792faf7",
+      "name": "Google Sheets Trigger",
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "bQbECcLI6j08ujXQ",
+          "name": "Google Sheets Trigger account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// IMPOSTER — Calculate Price\n\nconst a3Quantity = Number($json.a3_quantity || 0);\nconst a4Quantity = Number($json.a4_quantity || 0);\n\n// Pricing rules\nconst A3_SINGLE_PRICE = 50;\nconst A3_PACK_QUANTITY = 5;\nconst A3_PACK_PRICE = 200;\n\nconst A4_SINGLE_PRICE = 35;\nconst A4_PACK_QUANTITY = 5;\nconst A4_PACK_PRICE = 150;\n\n// Calculate price for a size\nfunction calculatePrice(quantity, packQuantity, packPrice, singlePrice) {\n  if (quantity <= 0) return 0;\n\n  const packs = Math.floor(quantity / packQuantity);\n  const remaining = quantity % packQuantity;\n\n  return (packs * packPrice) + (remaining * singlePrice);\n}\n\nconst a3Price = calculatePrice(\n  a3Quantity,\n  A3_PACK_QUANTITY,\n  A3_PACK_PRICE,\n  A3_SINGLE_PRICE\n);\n\nconst a4Price = calculatePrice(\n  a4Quantity,\n  A4_PACK_QUANTITY,\n  A4_PACK_PRICE,\n  A4_SINGLE_PRICE\n);\n\nconst totalPrice = a3Price + a4Price;\n\nreturn {\n  json: {\n    ...$json,\n\n    a3_price: a3Price,\n    a4_price: a4Price,\n    total_price: totalPrice,\n\n    currency: \"INR\"\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2864,
+        720
+      ],
+      "id": "534e3666-92ec-4051-b09c-48ceed94cb7e",
+      "name": "Calculate Price",
+      "notesInFlow": true,
+      "notes": "Calculate Price"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// ============================================================\n// IMPOSTER — NORMALIZE ORDER\n// ============================================================\n// Converts the raw Google Form / Google Sheets response into\n// one clean order object.\n//\n// Handles:\n//   1. A3 only\n//   2. A4 only\n//   3. Both A3 + A4\n//\n// Handles design choices:\n//   - Own image\n//   - IMPOSTER Catalog\n//   - Catalog + own image\n// ============================================================\n\n\nconst data = $json;\n\n\n// ============================================================\n// HELPER FUNCTIONS\n// ============================================================\n\nfunction cleanString(value) {\n  if (value === undefined || value === null) {\n    return \"\";\n  }\n\n  return String(value).trim();\n}\n\n\n// Return the first non-empty value from a list of possible\n// Google Sheets column names.\nfunction firstValue(...values) {\n  for (const value of values) {\n    const cleaned = cleanString(value);\n\n    if (cleaned !== \"\") {\n      return cleaned;\n    }\n  }\n\n  return \"\";\n}\n\n\n// Parse quantity safely.\nfunction parseQuantity(value) {\n\n  if (\n    value === undefined ||\n    value === null ||\n    cleanString(value) === \"\"\n  ) {\n    return 0;\n  }\n\n  const quantity = Number(value);\n\n  if (!Number.isFinite(quantity) || quantity < 0) {\n    return 0;\n  }\n\n  return Math.floor(quantity);\n}\n\n\n// Parse catalog numbers.\n//\n// Examples:\n// \"22\"       -> [22]\n// \"22,34\"    -> [22,34]\n// \"22, 34\"   -> [22,34]\n//\n// Only numbers 1–50 are accepted.\nfunction parseCatalogNumbers(value) {\n\n  const text = cleanString(value);\n\n  if (!text) {\n    return [];\n  }\n\n  return text\n    .split(\",\")\n    .map(x => x.trim())\n    .filter(x => x !== \"\")\n    .map(x => Number(x))\n    .filter(\n      x =>\n        Number.isInteger(x) &&\n        x >= 1 &&\n        x <= 50\n    );\n}\n\n\n// ============================================================\n// CUSTOMER INFORMATION\n// ============================================================\n\nconst customerName = cleanString(\n  data[\"Full Name\"]\n);\n\nconst email = cleanString(\n  data[\"Email Address\"]\n);\n\nconst whatsapp = cleanString(\n  data[\"WhatsApp Number\"]\n);\n\nconst branch = cleanString(\n  data[\"Branch\"]\n);\n\nconst year = cleanString(\n  data[\"Year\"]\n);\n\nconst hostel = cleanString(\n  data[\"Please select your hostel from the list below:\"]\n);\n\n\n// ============================================================\n// POSTER SIZE\n// ============================================================\n\nconst posterSize = cleanString(\n  data[\"Poster Size\"]\n);\n\n\n// ============================================================\n// A3 QUANTITY\n// ============================================================\n//\n// A3-only form uses:\n//\n// How many A3 posters do you want?\n//\n// Both A3 + A4 section uses:\n//\n// A3+A4 — How many A3 posters do you want?\n//\n// We check both.\n// ============================================================\n\nconst a3Quantity = parseQuantity(\n  firstValue(\n    data[\"A3+A4 — How many A3 posters do you want?\"],\n    data[\"A3+A4 — How many A3 posters do you want? \"],\n    data[\"How many A3 posters do you want?\"]\n  )\n);\n\n\n// ============================================================\n// A4 QUANTITY\n// ============================================================\n//\n// A4-only form uses:\n//\n// How many A4 posters do you want?\n//\n// Both section uses:\n//\n// A3+A4 — How many A4 posters do you want?\n// ============================================================\n\nconst a4Quantity = parseQuantity(\n  firstValue(\n    data[\"A3+A4 — How many A4 posters do you want?\"],\n    data[\"A3+A4 — How many A4 posters do you want? \"],\n    data[\"How many A4 posters do you want?\"]\n  )\n);\n\n\n// ============================================================\n// A3 DESIGN SOURCE\n// ============================================================\n\nconst a3Source = firstValue(\n\n  // Both A3 + A4 section\n  data[\"A3+A4 — How would you like to choose A3 design?\"],\n  data[\"A3+A4 — How would you like to choose your A3 design?\"],\n\n  // A3-only section\n  data[\"How would you like to choose your A3 design?\"]\n\n);\n\n\n// ============================================================\n// A4 DESIGN SOURCE\n// ============================================================\n\nconst a4Source = firstValue(\n\n  // Both A3 + A4 section\n  data[\"A3+A4 — How would you like to choose A4 design?\"],\n  data[\"A3+A4 — How would you like to choose your A4 design?\"],\n\n  // A4-only section\n  data[\"How would you like to choose your A4 design?\"]\n\n);\n\n\n// ============================================================\n// A3 CATALOG NUMBERS\n// ============================================================\n\nconst a3CatalogRaw = firstValue(\n\n  // Both section\n  data[\"A3+A4 — A3 Catalog Design Number(s)\\n👉 OPEN CATALOG\"],\n  data[\"A3+A4 — A3 Catalog Design Number(s) 👉 OPEN CATALOG\"],\n  data[\"A3+A4 — A3 Catalog Design Number(s)\"],\n\n  // A3-only section\n  data[\"A3 Catalog Design Number(s)\\n👉 OPEN CATALOG\"],\n  data[\"A3 Catalog Design Number(s) 👉 OPEN CATALOG\"],\n  data[\"A3 Catalog Design Number(s)\"]\n\n);\n\nconst a3CatalogNumbers =\n  parseCatalogNumbers(a3CatalogRaw);\n\n\n// ============================================================\n// A4 CATALOG NUMBERS\n// ============================================================\n\nconst a4CatalogRaw = firstValue(\n\n  // Both section\n  data[\"A3+A4 — A4 Catalog Design Number(s)\\n👉 OPEN CATALOG\"],\n  data[\"A3+A4 — A4 Catalog Design Number(s) 👉 OPEN CATALOG\"],\n  data[\"A3+A4 — A4 Catalog Design Number(s)\"],\n\n  // A4-only section\n  data[\"A4 Catalog Design Number(s)\\n👉 OPEN CATALOG\"],\n  data[\"A4 Catalog Design Number(s) 👉 OPEN CATALOG\"],\n  data[\"A4 Catalog Design Number(s)\"]\n\n);\n\nconst a4CatalogNumbers =\n  parseCatalogNumbers(a4CatalogRaw);\n\n\n// ============================================================\n// CUSTOM A3 FILE\n// ============================================================\n//\n// A3-only section:\n//\n// Upload your own A3 design\n//\n// Both section:\n//\n// A3+A4 — Upload your own A3 design\n//\n// We also check the generic Google Form upload question as a\n// fallback.\n// ============================================================\n\nconst a3CustomFile = firstValue(\n\n  // Both A3 + A4\n  data[\"A3+A4 — Upload your own A3 design\"],\n  data[\"A3+A4 — Upload your own A3 design \"],\n\n  // A3-only\n  data[\"Upload your own A3 design\"],\n\n  // Generic upload fallback\n  data[\"Please upload the image you would like us to print for your poster:\"]\n\n);\n\n\n// ============================================================\n// CUSTOM A4 FILE\n// ============================================================\n//\n// A4-only form uses the generic upload question:\n//\n// Please upload the image you would like us to print for your poster:\n//\n// We also check possible A4-specific / Both-section names.\n// ============================================================\n\nconst a4CustomFile = firstValue(\n\n  // Both A3 + A4\n  data[\"A3+A4 — Upload your own A4 design\"],\n  data[\"A3+A4 — Upload your own A4 design \"],\n\n  // A4-specific name, if present\n  data[\"Upload your own A4 design\"],\n\n  // Actual generic upload question\n  data[\"Please upload the image you would like us to print for your poster:\"]\n\n);\n\n\n// ============================================================\n// IMPORTANT CUSTOM FILE CORRECTION FOR BOTH ORDERS\n// ============================================================\n//\n// Google Forms can produce duplicate/generic upload columns.\n//\n// For a Both order, if the A3+A4-specific A3/A4 fields exist,\n// use those first.\n//\n// The previous firstValue() logic already handles this.\n// ============================================================\n\n\n// ============================================================\n// PAYMENT\n// ============================================================\n\nconst paymentMode = firstValue(\n\n  data[\n    \"Payment Mode\\n(Once your payment is completed, you will receive a WhatsApp confirmation message from the IMPOSTER team confirming your order.\\nPlease make sure the WhatsApp number provided in the form is correct so we can contact you without any issues.)\"\n  ],\n\n  data[\"Payment Mode\"]\n\n);\n\n\nconst paymentScreenshot = firstValue(\n\n  data[\" Payment Screenshot\\n\"],\n\n  data[\"Payment Screenshot\"],\n\n  data[\" Payment Screenshot\"]\n\n);\n\n\n// ============================================================\n// VALIDATION\n// ============================================================\n\nconst errors = [];\n\n\n// ============================================================\n// 1. POSTER SIZE / QUANTITY\n// ============================================================\n\nif (\n  posterSize === \"A3\" &&\n  a3Quantity < 1\n) {\n\n  errors.push(\n    \"A3 selected but A3 quantity is missing.\"\n  );\n\n}\n\n\nif (\n  posterSize === \"A4\" &&\n  a4Quantity < 1\n) {\n\n  errors.push(\n    \"A4 selected but A4 quantity is missing.\"\n  );\n\n}\n\n\nif (\n  posterSize === \"Both A3 and A4\"\n) {\n\n  if (a3Quantity < 1) {\n\n    errors.push(\n      \"Both selected but A3 quantity is missing.\"\n    );\n\n  }\n\n\n  if (a4Quantity < 1) {\n\n    errors.push(\n      \"Both selected but A4 quantity is missing.\"\n    );\n\n  }\n\n}\n\n\n// ============================================================\n// 2. CUSTOM DESIGN COUNTS\n// ============================================================\n//\n// One uploaded custom file = one custom design.\n//\n// Multiple comma-separated uploaded files = multiple designs.\n//\n// ============================================================\n\nfunction countUrls(urlStr) {\n\n  if (!urlStr) return 0;\n\n  return urlStr\n    .split(\",\")\n    .map(s => s.trim())\n    .filter(s => s !== \"\")\n    .length;\n}\n\nconst a3CustomCount = countUrls(a3CustomFile);\nconst a4CustomCount = countUrls(a4CustomFile);\n\n\n// ============================================================\n// 3. TOTAL DESIGN COUNTS\n// ============================================================\n\nconst a3DesignCount =\n  a3CatalogNumbers.length +\n  a3CustomCount;\n\nconst a4DesignCount =\n  a4CatalogNumbers.length +\n  a4CustomCount;\n\n\n// ============================================================\n// 4. QUANTITY VS DESIGN VALIDATION\n// ============================================================\n\nif (a3Quantity > 0) {\n\n  if (a3DesignCount !== a3Quantity) {\n\n    errors.push(\n      `A3 quantity is ${a3Quantity}, but ${a3DesignCount} design(s) were provided.`\n    );\n\n  }\n\n}\n\n\nif (a4Quantity > 0) {\n\n  if (a4DesignCount !== a4Quantity) {\n\n    errors.push(\n      `A4 quantity is ${a4Quantity}, but ${a4DesignCount} design(s) were provided.`\n    );\n\n  }\n\n}\n\n\n// ============================================================\n// 5. DESIGN-SOURCE VALIDATION\n// ============================================================\n//\n// This catches cases such as:\n//\n// \"Catalog\" selected but no catalog number\n//\n// or\n//\n// \"My own image\" selected but no upload.\n//\n// ============================================================\n\nfunction sourceContains(source, text) {\n\n  return source\n    .toLowerCase()\n    .includes(text.toLowerCase());\n\n}\n\n\n// ---------- A3 ----------\n\nif (a3Quantity > 0) {\n\n  if (\n    sourceContains(a3Source, \"catalog\") &&\n    a3CatalogNumbers.length === 0\n  ) {\n\n    errors.push(\n      \"A3 catalog was selected but no valid catalog design number was provided.\"\n    );\n\n  }\n\n\n  if (\n    sourceContains(a3Source, \"own image\") &&\n    a3CustomCount === 0\n  ) {\n\n    errors.push(\n      \"A3 own image was selected but no custom image was uploaded.\"\n    );\n\n  }\n\n}\n\n\n// ---------- A4 ----------\n\nif (a4Quantity > 0) {\n\n  if (\n    sourceContains(a4Source, \"catalog\") &&\n    a4CatalogNumbers.length === 0\n  ) {\n\n    errors.push(\n      \"A4 catalog was selected but no valid catalog design number was provided.\"\n    );\n\n  }\n\n\n  if (\n    sourceContains(a4Source, \"own image\") &&\n    a4CustomCount === 0\n  ) {\n\n    errors.push(\n      \"A4 own image was selected but no custom image was uploaded.\"\n    );\n\n  }\n\n}\n\n\n// ============================================================\n// FINAL VALIDITY\n// ============================================================\n\nconst isValid =\n  errors.length === 0;\n\n\n// ============================================================\n// RETURN NORMALIZED ORDER\n// ============================================================\n\nreturn {\n\n  json: {\n\n    // --------------------------------------------------------\n    // SUBMISSION\n    // --------------------------------------------------------\n\n    submitted_at:\n      cleanString(data[\"Timestamp\"]),\n\n\n    // --------------------------------------------------------\n    // CUSTOMER\n    // --------------------------------------------------------\n\n    customer_name:\n      customerName,\n\n    email:\n      email,\n\n    whatsapp:\n      whatsapp,\n\n    branch:\n      branch,\n\n    year:\n      year,\n\n    hostel:\n      hostel,\n\n\n    // --------------------------------------------------------\n    // ORDER\n    // --------------------------------------------------------\n\n    poster_size:\n      posterSize,\n\n\n    // --------------------------------------------------------\n    // A3\n    // --------------------------------------------------------\n\n    a3_quantity:\n      a3Quantity,\n\n    a3_source:\n      a3Source,\n\n    a3_catalog_numbers:\n      a3CatalogNumbers,\n\n    a3_custom_file:\n      a3CustomFile,\n\n\n    // --------------------------------------------------------\n    // A4\n    // --------------------------------------------------------\n\n    a4_quantity:\n      a4Quantity,\n\n    a4_source:\n      a4Source,\n\n    a4_catalog_numbers:\n      a4CatalogNumbers,\n\n    a4_custom_file:\n      a4CustomFile,\n\n\n    // --------------------------------------------------------\n    // COUNTS\n    // --------------------------------------------------------\n\n    a3_catalog_count:\n      a3CatalogNumbers.length,\n\n    a3_custom_count:\n      a3CustomCount,\n\n    a4_catalog_count:\n      a4CatalogNumbers.length,\n\n    a4_custom_count:\n      a4CustomCount,\n\n\n    // --------------------------------------------------------\n    // PAYMENT\n    // --------------------------------------------------------\n\n    payment_mode:\n      paymentMode,\n\n    payment_screenshot:\n      paymentScreenshot,\n\n\n    // --------------------------------------------------------\n    // VALIDATION\n    // --------------------------------------------------------\n\n    is_valid:\n      isValid,\n\n    validation_errors:\n      errors,\n\n\n    // --------------------------------------------------------\n    // INITIAL STATUS\n    // --------------------------------------------------------\n\n    payment_status:\n      \"PENDING\",\n\n    design_status:\n      \"WAITING\",\n\n    print_status:\n      \"NOT_READY\",\n\n    whatsapp_status:\n      \"NOT_SENT\",\n\n    order_status:\n      \"NEW\"\n\n  }\n\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2992,
+        240
+      ],
+      "id": "fce7b0fb-f80d-4d6e-b306-7a8eda91556d",
+      "name": "Normalize Order",
+      "notesInFlow": true,
+      "notes": "Normalize Order"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// IMPOSTER — Generate Production-Safe Order ID\n\nconst now = new Date();\n\n// India date/time\nconst indiaTime = new Intl.DateTimeFormat(\"en-IN\", {\n  timeZone: \"Asia/Kolkata\",\n  year: \"2-digit\",\n  month: \"2-digit\",\n  day: \"2-digit\",\n  hour: \"2-digit\",\n  minute: \"2-digit\",\n  second: \"2-digit\",\n  hour12: false\n}).formatToParts(now);\n\nconst parts = {};\n\nfor (const part of indiaTime) {\n  if (part.type !== \"literal\") {\n    parts[part.type] = part.value;\n  }\n}\n\nconst dateCode =\n  parts.year +\n  parts.month +\n  parts.day;\n\nconst timeCode =\n  parts.hour +\n  parts.minute +\n  parts.second;\n\n// Use the n8n execution ID plus the current item's data\n// to create a unique suffix for this order.\nconst executionId = String($execution.id || \"\");\n\nconst sourceTimestamp = String($json.submitted_at || \"\");\nconst customerEmail = String($json.email || \"\");\nconst whatsapp = String($json.whatsapp || \"\");\n\n// Build a deterministic per-order source string.\nconst source = [\n  executionId,\n  sourceTimestamp,\n  customerEmail,\n  whatsapp\n].join(\"|\");\n\n// Create a compact hash from the source string.\nlet hash = 0;\n\nfor (let i = 0; i < source.length; i++) {\n  hash = ((hash << 5) - hash) + source.charCodeAt(i);\n  hash |= 0;\n}\n\nconst suffix = Math.abs(hash).toString(36).toUpperCase().padStart(6, \"0\");\n\n// Final Order ID\nconst orderId = `IMP-${dateCode}-${timeCode}-${suffix}`;\n\nreturn {\n  json: {\n    ...$json,\n\n    order_id: orderId,\n    order_created_at: now.toISOString()\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2736,
+        240
+      ],
+      "id": "ed7ceb4e-e726-4ea4-897e-ee0493ee3449",
+      "name": "Generate Order ID"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "19fL8p9uT8O2yeguoChzpkkTgM3tqQBdCPDgMA92yvFQ",
+          "mode": "list",
+          "cachedResultName": "IMPOSTER — Custom Poster Order (Responses)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19fL8p9uT8O2yeguoChzpkkTgM3tqQBdCPDgMA92yvFQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1824980234,
+          "mode": "list",
+          "cachedResultName": "Catalog ",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19fL8p9uT8O2yeguoChzpkkTgM3tqQBdCPDgMA92yvFQ/edit#gid=1824980234"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -2608,
+        720
+      ],
+      "id": "cb611492-ca13-42a2-9c91-e145286339f0",
+      "name": "Get Catalog",
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "lIot91AXTdIPqcaz",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// IMPOSTER — Validate Catalog\n// Current architecture:\n// - Loop Over Items processes ONE order at a time.\n// - Get Catalog provides the 50 catalog rows.\n// - This node validates the CURRENT order only.\n// - Output must always be ONE order item.\n\nconst catalogItems = $input.all();\n\n// Get the current order being processed by the loop.\n// Generate Order ID belongs to the current loop iteration.\nconst order = $('Generate Order ID').item.json;\n\nif (!order) {\n  throw new Error(\"No current order found from Generate Order ID.\");\n}\n\n// Build catalog lookup.\nconst catalogMap = new Map();\n\nfor (const item of catalogItems) {\n  const row = item.json;\n\n  const designNo = Number(row[\"Design No\"]);\n  const canvaPage = Number(row[\"Canva Page\"]);\n  const active = String(row[\"Active\"] || \"\").trim().toUpperCase();\n  const driveFileId = String(row[\"Drive File ID\"] || \"\").trim();\n\n  if (!Number.isInteger(designNo)) {\n    continue;\n  }\n\n  catalogMap.set(designNo, {\n    design_no: designNo,\n    canva_page: canvaPage,\n    active,\n    drive_file_id: driveFileId\n  });\n}\n\n// Validate requested catalog numbers for one size.\nfunction validateCatalogNumbers(numbers, size) {\n  const valid = [];\n  const invalid = [];\n  const inactive = [];\n  const missingFileId = [];\n\n  for (const rawNumber of numbers || []) {\n    const number = Number(rawNumber);\n\n    const entry = catalogMap.get(number);\n\n    if (!entry) {\n      invalid.push(number);\n      continue;\n    }\n\n    if (entry.active !== \"YES\") {\n      inactive.push(number);\n      continue;\n    }\n\n    if (!entry.drive_file_id) {\n      missingFileId.push(number);\n      continue;\n    }\n\n    valid.push({\n      design_no: entry.design_no,\n      canva_page: entry.canva_page,\n      drive_file_id: entry.drive_file_id\n    });\n  }\n\n  return {\n    size,\n    requested: numbers || [],\n    valid,\n    invalid,\n    inactive,\n    missing_file_id: missingFileId,\n    is_valid:\n      invalid.length === 0 &&\n      inactive.length === 0 &&\n      missingFileId.length === 0\n  };\n}\n\n// Validate the CURRENT order only.\nconst a3Validation = validateCatalogNumbers(\n  order.a3_catalog_numbers,\n  \"A3\"\n);\n\nconst a4Validation = validateCatalogNumbers(\n  order.a4_catalog_numbers,\n  \"A4\"\n);\n\n// Collect catalog errors.\nconst errors = [];\n\nif (a3Validation.invalid.length > 0) {\n  errors.push(\n    `Invalid A3 catalog number(s): ${a3Validation.invalid.join(\", \")}`\n  );\n}\n\nif (a3Validation.inactive.length > 0) {\n  errors.push(\n    `Inactive A3 catalog number(s): ${a3Validation.inactive.join(\", \")}`\n  );\n}\n\nif (a3Validation.missing_file_id.length > 0) {\n  errors.push(\n    `Missing A3 Drive File ID(s): ${a3Validation.missing_file_id.join(\", \")}`\n  );\n}\n\nif (a4Validation.invalid.length > 0) {\n  errors.push(\n    `Invalid A4 catalog number(s): ${a4Validation.invalid.join(\", \")}`\n  );\n}\n\nif (a4Validation.inactive.length > 0) {\n  errors.push(\n    `Inactive A4 catalog number(s): ${a4Validation.inactive.join(\", \")}`\n  );\n}\n\nif (a4Validation.missing_file_id.length > 0) {\n  errors.push(\n    `Missing A4 Drive File ID(s): ${a4Validation.missing_file_id.join(\", \")}`\n  );\n}\n\n// Extract Drive File IDs while preserving duplicates.\nconst a3_catalog_drive_file_ids =\n  a3Validation.valid.map(x => x.drive_file_id);\n\nconst a4_catalog_drive_file_ids =\n  a4Validation.valid.map(x => x.drive_file_id);\n\n// Return EXACTLY ONE order.\nreturn [\n  {\n    json: {\n      ...order,\n\n      a3_catalog_validation: a3Validation,\n      a4_catalog_validation: a4Validation,\n\n      a3_catalog_pages:\n        a3Validation.valid.map(x => x.canva_page),\n\n      a4_catalog_pages:\n        a4Validation.valid.map(x => x.canva_page),\n\n      a3_catalog_drive_file_ids,\n      a4_catalog_drive_file_ids,\n\n      catalog_validation: {\n        is_valid: errors.length === 0,\n        errors\n      },\n\n      catalog_status:\n        errors.length === 0 ? \"VALID\" : \"ERROR\"\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2496,
+        256
+      ],
+      "id": "01395547-0ced-4b0c-b74d-8c9bd8380224",
+      "name": "Validate Catalog"
+    },
+    {
+      "parameters": {
+        "jsCode": "// IMPOSTER — Prepare Order Record\n// One loop iteration = one order.\n// Validate Catalog returns exactly one validated order item.\n\nconst items = $input.all();\n\nif (items.length !== 1) {\n  throw new Error(\n    `SAFETY STOP: Prepare Order Record expected exactly 1 item, received ${items.length}.`\n  );\n}\n\nconst order = items[0].json;\n\nreturn [\n  {\n    json: {\n      order_id: order.order_id,\n      created_at: order.order_created_at,\n\n      customer_name: order.customer_name,\n      email: order.email,\n      whatsapp: order.whatsapp,\n      branch: order.branch,\n      year: order.year,\n      hostel: order.hostel,\n\n      poster_size: order.poster_size,\n\n      a3_quantity: order.a3_quantity,\n      a3_source: order.a3_source,\n      a3_catalog_numbers:\n        (order.a3_catalog_numbers || []).join(\", \"),\n      a3_custom_file: order.a3_custom_file,\n\n      a4_quantity: order.a4_quantity,\n      a4_source: order.a4_source,\n      a4_catalog_numbers:\n        (order.a4_catalog_numbers || []).join(\", \"),\n      a4_custom_file: order.a4_custom_file,\n\n      a3_price: order.a3_price,\n      a4_price: order.a4_price,\n      total_price: order.total_price,\n\n      payment_mode: order.payment_mode,\n      payment_screenshot: order.payment_screenshot,\n\n      payment_status: order.payment_status,\n      design_status: order.design_status,\n\n      canva_a3: \"\",\n      canva_a4: \"\",\n\n      print_status: order.print_status,\n      whatsapp_status: order.whatsapp_status,\n      order_status: order.order_status,\n\n      notes: \"\"\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2368,
+        736
+      ],
+      "id": "69101646-aff7-4e77-8a84-d3abf4deb5a7",
+      "name": "Prepare Order Record"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "19fL8p9uT8O2yeguoChzpkkTgM3tqQBdCPDgMA92yvFQ",
+          "mode": "list",
+          "cachedResultName": "IMPOSTER — Custom Poster Order (Responses)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19fL8p9uT8O2yeguoChzpkkTgM3tqQBdCPDgMA92yvFQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1082351312,
+          "mode": "list",
+          "cachedResultName": "orders",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19fL8p9uT8O2yeguoChzpkkTgM3tqQBdCPDgMA92yvFQ/edit#gid=1082351312"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Order ID": "={{ $json.order_id }}",
+            "Created At": "={{ $json.created_at }}",
+            "Customer Name": "={{ $json.customer_name }}",
+            "WhatsApp": "={{ $json.whatsapp }}",
+            "Email": "={{ $json.email }}",
+            "Branch": "={{ $json.branch }}",
+            "Hostel": "={{ $json.hostel }}",
+            "Year": "={{ $json.year }}",
+            "A3 Quantity": "={{ $json.a3_quantity }}",
+            "A3 Source": "={{ $json.a3_source }}",
+            "A3 Catalog Numbers": "={{ $json.a3_catalog_numbers }}",
+            "A4 Quantity": "={{ $json.a4_quantity }}",
+            "A3 Custom File": "={{ $json.a3_custom_file }}",
+            "A4 Source": "={{ $json.a4_source }}",
+            "A4 Catalog Numbers": "={{ $json.a4_catalog_numbers }}",
+            "A4 Custom File": "={{ $json.a4_custom_file }}",
+            "A3 Price": "={{ $json.a3_price }}",
+            "Total Price": "={{ $json.total_price }}",
+            "A4 Price": "={{ $json.a4_price }}",
+            "Payment Screenshot": "={{ $json.payment_screenshot }}",
+            "Payment Mode": "={{ $json.payment_mode }}",
+            "Payment Status": "={{ $json.payment_status }}",
+            "Canva A3": "={{ $json.canva_a3 }}",
+            "Design Status": "={{ $json.design_status }}",
+            "Canva A4": "={{ $json.canva_a4 }}",
+            "Print Status": "={{ $json.print_status }}",
+            "WhatsApp Status": "={{ $json.whatsapp_status }}",
+            "Notes": "={{ $json.notes }}",
+            "Order Status": "={{ $json.order_status }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Order ID",
+              "displayName": "Order ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Created At",
+              "displayName": "Created At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Customer Name",
+              "displayName": "Customer Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "WhatsApp",
+              "displayName": "WhatsApp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Branch",
+              "displayName": "Branch",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Year",
+              "displayName": "Year",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Hostel",
+              "displayName": "Hostel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "A3 Quantity",
+              "displayName": "A3 Quantity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "A3 Source",
+              "displayName": "A3 Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "A3 Catalog Numbers",
+              "displayName": "A3 Catalog Numbers",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "A3 Custom File",
+              "displayName": "A3 Custom File",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "A4 Quantity",
+              "displayName": "A4 Quantity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "A4 Source",
+              "displayName": "A4 Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "A4 Catalog Numbers",
+              "displayName": "A4 Catalog Numbers",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "A4 Custom File",
+              "displayName": "A4 Custom File",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "A3 Price",
+              "displayName": "A3 Price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "A4 Price",
+              "displayName": "A4 Price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total Price",
+              "displayName": "Total Price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Payment Mode",
+              "displayName": "Payment Mode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Payment Screenshot",
+              "displayName": "Payment Screenshot",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Payment Status",
+              "displayName": "Payment Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Design Status",
+              "displayName": "Design Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Canva A3",
+              "displayName": "Canva A3",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Canva A4",
+              "displayName": "Canva A4",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Print Status",
+              "displayName": "Print Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "WhatsApp Status",
+              "displayName": "WhatsApp Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Order Status",
+              "displayName": "Order Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -2256,
+        272
+      ],
+      "id": "7450ae12-3ce7-4a0a-9534-6c13e8c7196a",
+      "name": "Write to Orders",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "lIot91AXTdIPqcaz",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "name": "={{ $json[\"Order ID\"] }} - {{ $json[\"Customer Name\"] }}",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "19d04pCc7xn_szMBl7hyeDB7DbMuMwKcd",
+          "mode": "list",
+          "cachedResultName": "IMPOSTER ORDERS",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/19d04pCc7xn_szMBl7hyeDB7DbMuMwKcd"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -2144,
+        720
+      ],
+      "id": "8d83a4d4-2b2d-4ea6-a89d-0a715cdcb5c5",
+      "name": "Create Order Folder",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "chHxRlOdwW5wFzDW",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "name": "INPUT",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Create Order Folder').first().json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -2000,
+        288
+      ],
+      "id": "87d1c330-25b7-45b7-8ac7-dfeb200750a8",
+      "name": "Create INPUT Folder",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "chHxRlOdwW5wFzDW",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "name": "CATALOG",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Create Order Folder').item.json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -1872,
+        720
+      ],
+      "id": "7ccaf71b-e38f-4740-a3b0-057ae257f823",
+      "name": "Create CATALOG Folder",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "chHxRlOdwW5wFzDW",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "name": "A3",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Create CATALOG Folder').first().json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -1744,
+        288
+      ],
+      "id": "b9798b8f-746f-4654-a653-4710ff586e17",
+      "name": "Create A3 Folder",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "chHxRlOdwW5wFzDW",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "name": "A4 ",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Create CATALOG Folder').first().json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -1616,
+        736
+      ],
+      "id": "39783111-49e5-4ebb-a027-3429c061e866",
+      "name": "Create A4 Folder",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "chHxRlOdwW5wFzDW",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "name": "FINAL",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Create Order Folder').first().json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -1488,
+        288
+      ],
+      "id": "c5e55000-9bb3-44b8-a2c0-2dfdc571404b",
+      "name": "Create FINAL Folder",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "chHxRlOdwW5wFzDW",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "name": "A3",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Create INPUT Folder').first().json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -1328,
+        736
+      ],
+      "id": "fd9ac893-1c09-4cf2-b557-fe00d075a709",
+      "name": "Create INPUT A3 Folder",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "chHxRlOdwW5wFzDW",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "name": "A4",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Create INPUT Folder').first().json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -1200,
+        320
+      ],
+      "id": "3ac4413e-eb5f-4074-b217-426cd9f1886a",
+      "name": "Create INPUT A4 Folder",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "chHxRlOdwW5wFzDW",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const order = $('Generate Order ID').first().json;\n\nfunction extractAllDriveFileIds(url) {\n  if (!url) return [];\n  const urls = String(url).split(',');\n  const ids = [];\n\n  for (let text of urls) {\n    text = text.trim();\n    const idFromQuery = text.match(/[?&]id=([a-zA-Z0-9_-]+)/);\n    if (idFromQuery) { ids.push(idFromQuery[1]); continue; }\n    \n    const idFromPath = text.match(/\\/d\\/([a-zA-Z0-9_-]+)/);\n    if (idFromPath) { ids.push(idFromPath[1]); continue; }\n  }\n  return ids;\n}\n\nconst a3FileIds = extractAllDriveFileIds(order.a3_custom_file);\nconst a4FileIds = extractAllDriveFileIds(order.a4_custom_file);\n\nreturn [{\n  json: {\n    ...order,\n    a3_custom_file_ids: a3FileIds,\n    a4_custom_file_ids: a4FileIds,\n    a3_custom_file_valid: a3FileIds.length > 0,\n    a4_custom_file_valid: a4FileIds.length > 0\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1040,
+        736
+      ],
+      "id": "88e7604e-5bc2-4fa6-98fd-5741b7d60944",
+      "name": "Extract File IDs"
+    },
+    {
+      "parameters": {
+        "operation": "copy",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.a3_custom_file_id }}",
+          "mode": "id"
+        },
+        "name": "=A3 - {{ $json.order_id }} - Part {{ $json.file_index }}",
+        "sameFolder": false,
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Create INPUT A3 Folder').item.json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -256,
+        880
+      ],
+      "id": "ef972d3e-0497-4a4b-8084-0873a86a5e39",
+      "name": "Copy A3 Custom File",
+      "retryOnFail": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "chHxRlOdwW5wFzDW",
+          "name": "Google Drive account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "copy",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.a4_custom_file_id }}",
+          "mode": "id"
+        },
+        "name": "=A4 - {{ $json.order_id }} - Part {{ $json.file_index }}",
+        "sameFolder": false,
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Create INPUT A4 Folder').item.json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -272,
+        352
+      ],
+      "id": "21dedcbc-a7ac-4df4-9248-a199c2cd9f40",
+      "name": "Copy A4 Custom File",
+      "retryOnFail": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "chHxRlOdwW5wFzDW",
+          "name": "Google Drive account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "name contains '.png'",
+        "returnAll": true,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "1gT1bvkW-C1dPZV3t9xpAYcz3uE6fd9mU",
+            "mode": "list",
+            "cachedResultName": "IMPOSTER CATALOG FILES",
+            "cachedResultUrl": "https://drive.google.com/drive/folders/1gT1bvkW-C1dPZV3t9xpAYcz3uE6fd9mU"
+          },
+          "whatToSearch": "files"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -2448,
+        1520
+      ],
+      "id": "af1d0f49-8aff-4d77-b108-00e16f2b6e5e",
+      "name": "Get Catalog Files",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "chHxRlOdwW5wFzDW",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// IMPOSTER — Build Catalog Index\n\nconst files = $input.all();\nconst output = [];\n\nfor (const item of files) {\n  const file = item.json;\n  const fileName = String(file.name || \"\").trim();\n\n  // Only process PNG files with a numeric filename.\n  const match = fileName.match(/^(\\d+)\\.png$/i);\n\n  if (!match) {\n    continue;\n  }\n\n  const designNo = Number(match[1]);\n\n  // Update limit: Designs 1–120 are valid.\n  if (designNo < 1 || designNo > 120) {\n    continue;\n  }\n\n  output.push({\n    json: {\n      design_no: designNo,\n      canva_page: designNo,\n      active: \"YES\",\n      drive_file_id: file.id,\n      file_name: fileName\n    }\n  });\n}\n\n// Sort by Design Number\noutput.sort((a, b) => a.json.design_no - b.json.design_no);\n\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1904,
+        1520
+      ],
+      "id": "1f7cb5ab-0c11-417f-8e2a-5ba237548937",
+      "name": "Build Catalog Index"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "19fL8p9uT8O2yeguoChzpkkTgM3tqQBdCPDgMA92yvFQ",
+          "mode": "list",
+          "cachedResultName": "IMPOSTER — Custom Poster Order (Responses)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19fL8p9uT8O2yeguoChzpkkTgM3tqQBdCPDgMA92yvFQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1824980234,
+          "mode": "list",
+          "cachedResultName": "Catalog ",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19fL8p9uT8O2yeguoChzpkkTgM3tqQBdCPDgMA92yvFQ/edit#gid=1824980234"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Drive File ID": "={{ $json.drive_file_id }}",
+            "Design No": "={{ $json.design_no }}"
+          },
+          "matchingColumns": [
+            "Design No"
+          ],
+          "schema": [
+            {
+              "id": "Design No",
+              "displayName": "Design No",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Canva Page",
+              "displayName": "Canva Page",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Active",
+              "displayName": "Active",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Drive File ID",
+              "displayName": "Drive File ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1440,
+        1520
+      ],
+      "id": "8aa2626a-86da-428e-b1f3-55160a7c7b13",
+      "name": "Write Catalog Index",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "lIot91AXTdIPqcaz",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "19fL8p9uT8O2yeguoChzpkkTgM3tqQBdCPDgMA92yvFQ",
+          "mode": "list",
+          "cachedResultName": "IMPOSTER — Custom Poster Order (Responses)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19fL8p9uT8O2yeguoChzpkkTgM3tqQBdCPDgMA92yvFQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1824980234,
+          "mode": "list",
+          "cachedResultName": "Catalog ",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19fL8p9uT8O2yeguoChzpkkTgM3tqQBdCPDgMA92yvFQ/edit#gid=1824980234"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -2720,
+        1536
+      ],
+      "id": "6b83ad9a-9cc2-4f04-aa73-a6ae1790a65c",
+      "name": "Get Catalog Index",
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "lIot91AXTdIPqcaz",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -3184,
+        960
+      ],
+      "id": "f4afe8f6-1138-40eb-b954-74b945d5e2eb",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Fetch the validated array and order ID directly from the source of truth\nconst validatedOrder = $('Validate Catalog').first().json;\nconst fileIds = validatedOrder.a3_catalog_drive_file_ids || [];\n\nconst output = [];\n\n// Create a separate item for every catalog file ID requested\nfor (const fileId of fileIds) {\n  output.push({\n    json: {\n      a3_catalog_file_id: fileId,\n      order_id: validatedOrder.order_id\n    }\n  });\n}\n\n// If empty, this returns 0 items and safely stops this branch\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -720,
+        1312
+      ],
+      "id": "c3451d16-1058-45aa-b7e1-522a0173cbab",
+      "name": "Prepare A3 Catalog Files."
+    },
+    {
+      "parameters": {
+        "operation": "copy",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.a3_catalog_file_id }}",
+          "mode": "id"
+        },
+        "sameFolder": false,
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Create A3 Folder').first().json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -256,
+        1280
+      ],
+      "id": "8a09b33d-b523-47cd-9ce7-367e8fdfa10d",
+      "name": "Copy A3 Catalog Files",
+      "retryOnFail": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "chHxRlOdwW5wFzDW",
+          "name": "Google Drive account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "copy",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.a4_catalog_file_id || '1gT1bvkW-C1dPZV3t9xpAYcz3uE6fd9mU' }}",
+          "mode": "id"
+        },
+        "sameFolder": false,
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Create A4 Folder').first().json.id || '19d04pCc7xn_szMBl7hyeDB7DbMuMwKcd' }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -272,
+        544
+      ],
+      "id": "314c30e7-e74e-4f31-828c-1c6373378ae1",
+      "name": "Copy A4 Catalog Files",
+      "retryOnFail": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "chHxRlOdwW5wFzDW",
+          "name": "Google Drive account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Fetch the validated array and order ID directly from the source of truth\nconst validatedOrder = $('Validate Catalog').first().json;\nconst fileIds = validatedOrder.a4_catalog_drive_file_ids || [];\n\nconst output = [];\n\n// Create a separate item for every catalog file ID requested\nfor (const fileId of fileIds) {\n  output.push({\n    json: {\n      a4_catalog_file_id: fileId,\n      order_id: validatedOrder.order_id\n    }\n  });\n}\n\n// If empty, this returns 0 items and safely stops this branch\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -768,
+        528
+      ],
+      "id": "c11b33cd-bcc2-44c3-97ea-36d275ed9228",
+      "name": "Prepare A4 Catalog Files"
+    },
+    {
+      "parameters": {
+        "jsCode": "const order = $('Extract File IDs').first().json;\nconst fileIds = order.a3_custom_file_ids || [];\nconst output = [];\nlet index = 1;\n\nfor (const fileId of fileIds) {\n  output.push({\n    json: {\n      a3_custom_file_id: fileId,\n      order_id: order.order_id,\n      file_index: index++\n    }\n  });\n}\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -736,
+        944
+      ],
+      "id": "3bdf3461-ef15-441a-a793-56048b2910f3",
+      "name": "Prepare A3 Custom Files"
+    },
+    {
+      "parameters": {
+        "jsCode": "const order = $('Extract File IDs').first().json;\nconst fileIds = order.a4_custom_file_ids || [];\nconst output = [];\nlet index = 1;\n\nfor (const fileId of fileIds) {\n  output.push({\n    json: {\n      a4_custom_file_id: fileId,\n      order_id: order.order_id,\n      file_index: index++\n    }\n  });\n}\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -800,
+        336
+      ],
+      "id": "6710af88-a826-4f60-90b8-297f8eb697d3",
+      "name": "Prepare A4 Custom Files"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Sheets Trigger": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Order": {
+      "main": [
+        [
+          {
+            "node": "Calculate Price",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Price": {
+      "main": [
+        [
+          {
+            "node": "Generate Order ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Order ID": {
+      "main": [
+        [
+          {
+            "node": "Get Catalog",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Catalog": {
+      "main": [
+        [
+          {
+            "node": "Validate Catalog",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Catalog": {
+      "main": [
+        [
+          {
+            "node": "Prepare Order Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Order Record": {
+      "main": [
+        [
+          {
+            "node": "Write to Orders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write to Orders": {
+      "main": [
+        [
+          {
+            "node": "Create Order Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Order Folder": {
+      "main": [
+        [
+          {
+            "node": "Create INPUT Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create INPUT Folder": {
+      "main": [
+        [
+          {
+            "node": "Create CATALOG Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create CATALOG Folder": {
+      "main": [
+        [
+          {
+            "node": "Create A3 Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create A3 Folder": {
+      "main": [
+        [
+          {
+            "node": "Create A4 Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create A4 Folder": {
+      "main": [
+        [
+          {
+            "node": "Create FINAL Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create FINAL Folder": {
+      "main": [
+        [
+          {
+            "node": "Create INPUT A3 Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create INPUT A3 Folder": {
+      "main": [
+        [
+          {
+            "node": "Create INPUT A4 Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create INPUT A4 Folder": {
+      "main": [
+        [
+          {
+            "node": "Extract File IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract File IDs": {
+      "main": [
+        [
+          {
+            "node": "Prepare A4 Custom Files",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare A3 Custom Files",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare A3 Catalog Files.",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare A4 Catalog Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Copy A3 Custom File": {
+      "main": [
+        []
+      ]
+    },
+    "Copy A4 Custom File": {
+      "main": [
+        []
+      ]
+    },
+    "Get Catalog Files": {
+      "main": [
+        [
+          {
+            "node": "Build Catalog Index",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Catalog Index": {
+      "main": [
+        [
+          {
+            "node": "Write Catalog Index",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Normalize Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare A3 Catalog Files.": {
+      "main": [
+        [
+          {
+            "node": "Copy A3 Catalog Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Copy A3 Catalog Files": {
+      "main": [
+        []
+      ]
+    },
+    "Prepare A4 Catalog Files": {
+      "main": [
+        [
+          {
+            "node": "Copy A4 Catalog Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare A3 Custom Files": {
+      "main": [
+        [
+          {
+            "node": "Copy A3 Custom File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare A4 Custom Files": {
+      "main": [
+        [
+          {
+            "node": "Copy A4 Custom File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "ac332784-0912-496c-aec4-c21c22a3acbc",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "97da335727f65ec299f14a8d3c6b5fa40e6eeaa641390507e47a78c32dd8f544"
+  },
+  "nodeGroups": [],
+  "id": "8IC372SKSlYh7TwF",
+  "tags": []
+}
