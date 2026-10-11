@@ -9,6 +9,10 @@ import type {
   OrderStatus,
 } from "./types";
 import { COLUMN_MAP } from "./types";
+import { DEMO_ORDERS } from "./demoOrders";
+
+/** DEMO_MODE=true runs the dashboard on made-up sample orders (no Google Sheet needed). */
+const isDemo = () => process.env.DEMO_MODE === "true";
 
 /**
  * Creates an authenticated Google Sheets client using a Service Account.
@@ -51,6 +55,7 @@ function getSheetName(): string {
  * The sheet has 43 columns (A through AQ) with spacer columns in between sections.
  */
 export async function getOrders(): Promise<Order[]> {
+  if (isDemo()) return DEMO_ORDERS;
   const sheets = getGoogleSheetsClient();
   const spreadsheetId = getSheetId();
   const sheetName = getSheetName();
@@ -117,6 +122,7 @@ export async function updateOrderStatus(
   columnHeader: string,
   value: string
 ): Promise<void> {
+  if (isDemo()) return; // demo data is read-only
   const sheets = getGoogleSheetsClient();
   const spreadsheetId = getSheetId();
   const sheetName = getSheetName();

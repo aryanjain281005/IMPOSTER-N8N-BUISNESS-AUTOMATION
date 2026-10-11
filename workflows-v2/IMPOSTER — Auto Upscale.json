@@ -1,0 +1,540 @@
+{
+  "name": "IMPOSTER — Auto Upscale",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "imposter-upscale",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "8d8f7993-a543-4b5c-bb49-89e4290f6b26",
+      "name": "Upscale Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "4b48c449-adb0-4fed-83c6-2b7b63914de3"
+    },
+    {
+      "parameters": {
+        "jsCode": "// One item per image to upscale.\nconst body = $json.body || $json;\nconst jobs = body.queue_only ? [] : (body.jobs || []);\nreturn jobs.map((j, i) => ({\n  json: {\n    ...j,\n    mode: j.mode || body.mode || 'normal',\n    order_id: body.order_id,\n    customer_name: body.customer_name,\n    job_id: `${body.order_id}_${j.size}_${j.label}`,\n    out_name: `${body.order_id}_${j.size}_${j.label}.png`,\n    target_folder_id: body.final_folders[j.size],\n    in_path: `/Users/aryanjain/.n8n-files/imposter/work/${body.order_id}_${j.size}_${j.label}.src`,\n    out_path: `/Users/aryanjain/.n8n-files/imposter/work/${body.order_id}_${j.size}_${j.label}.png`\n  }\n}));"
+      },
+      "id": "94228e6a-b65c-4b4c-9364-1834a2e027b7",
+      "name": "Build Jobs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.file_id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "4433b1b7-0de4-4791-aa40-76e927665631",
+      "name": "Download Original",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        440,
+        0
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "chHxRlOdwW5wFzDW",
+          "name": "Google Drive account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "={{ $('Build Jobs').item.json.in_path }}",
+        "dataPropertyName": "data",
+        "options": {}
+      },
+      "id": "ed34952d-2ba0-4569-a597-1f4cba21e890",
+      "name": "Save Original To Disk",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        660,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "command": "={{ $('Build Jobs').all().map(i => `/Users/aryanjain/.n8n-files/imposter/imposter-upscale.sh '${i.json.in_path}' ${i.json.size} '${i.json.out_path}' ${i.json.mode || 'normal'}`).join('; ') }}"
+      },
+      "id": "108a840c-30e4-4c53-aa93-0a15c35d7ef3",
+      "name": "Upscale With Upscayl",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        880,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// One command processed every image of the order; stdout has one JSON line per image, in order.\nconst jobs = $('Build Jobs').all();\nconst lines = String($json.stdout || '').split('\\n').map(l => l.trim()).filter(l => l.startsWith('{'));\nreturn jobs.map((j, i) => {\n  let r = { status: 'ERROR', note: 'no output from upscale script' };\n  try { if (lines[i]) r = JSON.parse(lines[i]); } catch (e) { r.note = 'bad script output'; }\n  return { json: { ...j.json, result: r } };\n});"
+      },
+      "id": "509525ad-cea1-49d7-a80c-34dae289e0d3",
+      "name": "Parse Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "fileSelector": "={{ $('Parse Result').item.json.out_path }}",
+        "options": {
+          "dataPropertyName": "data"
+        }
+      },
+      "id": "d746678d-ecc4-4b6a-9afa-ebca23de5881",
+      "name": "Read Upscaled File",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "name": "={{ $('Parse Result').item.json.out_name }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Parse Result').item.json.target_folder_id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "fc870036-d5f5-4aa8-8e9f-bc834697ba58",
+      "name": "Upload To FINAL",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1980,
+        0
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "chHxRlOdwW5wFzDW",
+          "name": "Google Drive account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "command": "={{ 'rm -f ' + $('Parse Result').all().flatMap(i => [`'${i.json.in_path}'`, `'${i.json.out_path}'`]).join(' ') }}"
+      },
+      "id": "92d5e5fb-446c-408d-9e7d-0e64219bcff7",
+      "name": "Clean Temp Files",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        2200,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Runs once for the whole order after every image has been processed.\nconst parsed = $('Parse Result').all();\nconst uploads = $('Upload To FINAL').all();\nconst orderId = parsed.length ? parsed[0].json.order_id : '';\nlet ok = 0, skipped = 0;\nconst problems = [], warnings = [];\n\nparsed.forEach((p, i) => {\n  const j = p.json, r = j.result || {};\n  const uploaded = uploads[i] && uploads[i].json && uploads[i].json.id && !uploads[i].json.error;\n  const tag = `${j.size} ${j.label}`;\n  if (r.status === 'ERROR' || !uploaded) {\n    problems.push(`${tag}: ${r.status === 'ERROR' ? r.note : 'upload to FINAL failed'}`);\n    return;\n  }\n  if (r.status === 'SKIPPED') skipped++; else ok++;\n  if (String(r.note || '').includes('ASPECT_OFF')) warnings.push(`${tag}: aspect ratio is not A-size, check crop`);\n});\n\nconst total = parsed.length;\nconst failed = problems.length;\nconst status = failed ? 'UPSCALE ISSUE' : 'AWAITING REVIEW';\nconst hq = parsed.length && parsed[0].json.mode === 'max';\nlet notes = `${hq ? 'HQ ' : ''}Auto-upscale: ${ok} upscaled, ${skipped} already print-res, ${failed} failed (of ${total}).`;\nif (warnings.length) notes += ' WARN: ' + warnings.join(' | ');\nif (failed) notes += ' FAILED: ' + problems.join(' | ');\nreturn [{ json: { order_id: orderId, design_status: status, notes } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "32c1a36b-24c5-4b53-ba41-cc94172ba708",
+      "name": "Summarize Order",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2420,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "19fL8p9uT8O2yeguoChzpkkTgM3tqQBdCPDgMA92yvFQ",
+          "mode": "list",
+          "cachedResultName": "IMPOSTER — Custom Poster Order (Responses)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19fL8p9uT8O2yeguoChzpkkTgM3tqQBdCPDgMA92yvFQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1082351312,
+          "mode": "list",
+          "cachedResultName": "orders",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19fL8p9uT8O2yeguoChzpkkTgM3tqQBdCPDgMA92yvFQ/edit#gid=1082351312"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Order ID": "={{ $json.order_id }}",
+            "Design Status": "={{ $json.design_status }}",
+            "Notes": "={{ $json.notes }}"
+          },
+          "matchingColumns": [
+            "Order ID"
+          ],
+          "schema": [
+            {
+              "id": "Order ID",
+              "displayName": "Order ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Design Status",
+              "displayName": "Design Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "52ae9d96-a7d2-46eb-9a4d-381f6310714e",
+      "name": "Update Orders Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2640,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "lIot91AXTdIPqcaz",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "19fL8p9uT8O2yeguoChzpkkTgM3tqQBdCPDgMA92yvFQ",
+          "mode": "list",
+          "cachedResultName": "IMPOSTER — Custom Poster Order (Responses)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19fL8p9uT8O2yeguoChzpkkTgM3tqQBdCPDgMA92yvFQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1082351312,
+          "mode": "list",
+          "cachedResultName": "orders",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19fL8p9uT8O2yeguoChzpkkTgM3tqQBdCPDgMA92yvFQ/edit#gid=1082351312"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Order ID": "={{ $json.body.order_id }}",
+            "Design Status": "={{ $json.body.queue_only ? 'QUEUED HQ' : ($json.body.mode === 'max' ? 'UPSCALING HQ' : 'UPSCALING') }}"
+          },
+          "matchingColumns": [
+            "Order ID"
+          ],
+          "schema": [
+            {
+              "id": "Order ID",
+              "displayName": "Order ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Design Status",
+              "displayName": "Design Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "839c1b47-fb1b-4de6-bb21-2162841f2a09",
+      "name": "Mark Order Status",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        220,
+        -220
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "lIot91AXTdIPqcaz",
+          "name": "Google Sheets account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://www.googleapis.com/drive/v3/files",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "=name = '{{ $json.out_name }}' and '{{ $json.target_folder_id }}' in parents and trashed = false"
+            },
+            {
+              "name": "fields",
+              "value": "files(id,name)"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e1f2ac9f-f8bc-46ab-8260-a4e69b069361",
+      "name": "Find Old Output",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1320,
+        -200
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "chHxRlOdwW5wFzDW",
+          "name": "Google Drive account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://www.googleapis.com/drive/v3/files/{{ ($json.files && $json.files[0] && ['OK','SKIPPED'].includes($('Parse Result').item.json.result.status)) ? $json.files[0].id : 'none' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"trashed\": true}",
+        "options": {}
+      },
+      "id": "a0d4ae71-aadd-4771-9c3a-8186aa9f5934",
+      "name": "Trash Old Output",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1540,
+        -200
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "chHxRlOdwW5wFzDW",
+          "name": "Google Drive account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Upscale Webhook": {
+      "main": [
+        [
+          {
+            "node": "Build Jobs",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Mark Order Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Jobs": {
+      "main": [
+        [
+          {
+            "node": "Download Original",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Original": {
+      "main": [
+        [
+          {
+            "node": "Save Original To Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Original To Disk": {
+      "main": [
+        [
+          {
+            "node": "Upscale With Upscayl",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upscale With Upscayl": {
+      "main": [
+        [
+          {
+            "node": "Parse Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Result": {
+      "main": [
+        [
+          {
+            "node": "Find Old Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Upscaled File": {
+      "main": [
+        [
+          {
+            "node": "Upload To FINAL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload To FINAL": {
+      "main": [
+        [
+          {
+            "node": "Clean Temp Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Temp Files": {
+      "main": [
+        [
+          {
+            "node": "Summarize Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarize Order": {
+      "main": [
+        [
+          {
+            "node": "Update Orders Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Old Output": {
+      "main": [
+        [
+          {
+            "node": "Trash Old Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trash Old Output": {
+      "main": [
+        [
+          {
+            "node": "Read Upscaled File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "b4162ac1-b716-4ba5-9126-b504550dffa0",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

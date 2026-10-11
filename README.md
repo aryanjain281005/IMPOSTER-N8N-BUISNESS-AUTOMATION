@@ -1,114 +1,328 @@
+<div align="center">
 
-# IMPOSTER Admin Dashboard
+<img src="docs/images/banner.svg" alt="IMPOSTER — campus poster printing, fully automated" width="100%"/>
 
-Welcome to the IMPOSTER Admin Dashboard! This is a web application built to help you manage poster printing orders. It connects directly to your Google Sheet to read and update data, and it can talk to your n8n automations.
+<br/>
 
-Here is a simple, logical breakdown of how everything works.
+![n8n](https://img.shields.io/badge/automation-n8n-EA4B71?style=for-the-badge&logo=n8n&logoColor=white)
+![Next.js](https://img.shields.io/badge/dashboard-Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
+![Google Sheets](https://img.shields.io/badge/database-Google%20Sheets-34A853?style=for-the-badge&logo=googlesheets&logoColor=white)
+![Google Drive](https://img.shields.io/badge/files-Google%20Drive-4285F4?style=for-the-badge&logo=googledrive&logoColor=white)
+![Tailwind](https://img.shields.io/badge/ui-Tailwind%20CSS-38BDF8?style=for-the-badge&logo=tailwindcss&logoColor=white)
+![Upscayl](https://img.shields.io/badge/AI%20upscaling-Real--ESRGAN-8B5CF6?style=for-the-badge)
 
----
+### A real poster business, run by a Google Form, a handful of n8n workflows and a very honest admin dashboard.
 
-## 1. Business & Automations Overview
+*Customer orders → automation validates, prices & prepares → AI upscales every image → you review → one click and it's print-ready.*
 
-**IMPOSTER** is a custom poster printing business offering A3 and A4 posters. Customers place orders via a Google Form, choosing designs from the IMPOSTER Catalog or uploading their own custom images.
-
-To make this business highly scalable, the entire pipeline is automated using **n8n**. The Next.js dashboard acts as the control center to monitor and trigger these automated processes.
-
-There are two major n8n workflows powering the business:
-
-### Automation 1: Order Intake & Preparation
-When a customer submits the Google Form, this workflow automatically triggers to process the raw data:
-- **Pricing Engine:** Dynamically calculates the exact total price (handling single prints vs. 5-packs for both A3 and A4 sizes).
-- **Validation:** Normalizes the data, verifies quantities against uploaded files, and cross-references requested catalog numbers with the expanded master Catalog database (now supporting 120+ designs).
-- **Order ID Generation:** Creates a unique, production-safe Order ID (e.g., `IMP-260828-154313-ABCDEF`).
-- **Google Drive Generation:** Automatically creates a structured Google Drive folder hierarchy (`Order ID - Customer Name` > `INPUT`, `CATALOG`, `FINAL` > `A3`, `A4`).
-- **File Routing:** Copies the customer's uploaded files and the chosen IMPOSTER Catalog files directly into their respective folders, ready for the print team.
-- **Database Entry:** Finally, it writes the clean, processed order into the `orders` Google Sheet (which immediately appears on this Next.js Dashboard).
-- <img width="2048" height="1123" alt="image" src="https://github.com/user-attachments/assets/587f9117-1130-484e-b72e-62d46990a455" />
-
-
-### Automation 2: Fulfillment & Dispatch (Optimized)
-When the print team finishes finalizing the designs, they change the "Design Status" on this Next.js Dashboard to **"READY"**. That single click triggers this workflow:
-- **Folder Sharing:** Instead of slowly downloading and zipping large image files, n8n instantly locates the existing `FINAL` folder in Google Drive and updates its permissions to generate a public viewer link.
-- **WhatsApp Generation:** Generates a personalized WhatsApp message containing the customer's details, dynamic payment instructions (Cash vs. Online), and the direct folder link so the customer can verify their high-quality prints.
-- **Dashboard Update:** Updates the Next.js Dashboard with the generated WhatsApp link and marks the status as "READY TO SEND", allowing admins to dispatch the message with a single click.
-
----
-<img width="2048" height="1128" alt="image" src="https://github.com/user-attachments/assets/eefd0e10-f76e-45ac-aa15-4bf0b98b94eb" />
-
-
-## 1. The Tech Stack (What it's built with)
-
-- **Frontend (The UI)**: Built using **Next.js** (a framework for React). It uses **Tailwind CSS** for styling (making it look good) and **shadcn/ui** for pre-built, nice-looking buttons, dropdowns, and tables.
-- **Backend (The Database)**: Instead of a traditional database, this app uses your **Google Sheet**.
-- **Automations**: It connects to **n8n** to trigger workflows when specific actions happen.
+</div>
 
 ---
 
-## 2. How the Connections Work
+## ✨ The story in 60 seconds
 
-This app acts as the "middleman" between you, your Google Sheet, and your n8n automations. Here are the two main connections:
+IMPOSTER is a custom poster printing business in a college hostel. It started with a **Google Form** — free, instant, zero setup — because there was no point building a website before knowing anyone would order.
 
-### Connection A: Dashboard ↔ Google Sheet
-To read and write data to your Google Sheet without you needing to log in every time, we use a **Google Service Account**.
-Think of a Service Account as a "robot user."
-1. You created a robot user (`imposter-dashboard@...`).
-2. We gave this robot user a "password" (the Private Key inside `.env.local`).
-3. You shared your Google Sheet with the robot user's email address and gave it "Editor" access.
-4. **How it works**: Every time you load the dashboard, the Next.js app asks the robot user to go read the Google Sheet and bring back the rows. When you click a dropdown to change a status (like changing Payment from PENDING to PAID), the app tells the robot user to go edit that exact cell in the Google Sheet.
+People did order. And then the same chores ate every evening: check the form, price it, review the designs, pull files from Drive, rename, sort A3 from A4, **upscale every image by hand**, build a folder, type a WhatsApp message… ten orders in, that's a headache with a name.
 
-### Connection B: Dashboard → n8n (Google Sheets Trigger)
-Because your n8n workflow uses a **Google Sheets Trigger** node, the dashboard doesn't even need to talk to n8n directly!
-1. In n8n, you set your trigger to watch the `orders` sheet for a `Row Updated` event, specifically watching the `Design Status` column.
-2. **How it works**: When you change the "Design Status" to "READY" on the dashboard, the Next.js app immediately updates that specific cell in the Google Sheet.
-3. n8n is constantly watching your Google Sheet. As soon as it sees that cell change to "READY", the n8n workflow wakes up and runs your automation automatically!
+So instead of building the website first, the **automation behind the form** got built — and a web dashboard was added on top of it afterwards. Every workflow here exists because something was *actually breaking* the business.
+
+> **Customer → Automation → Team → Automation → Customer**
 
 ---
 
-## 3. The Code Structure (Where things are)
+## 🗺️ How an order travels
 
-If you ever need to change things, here is a simple guide to where the code lives:
+```mermaid
+flowchart TD
+    C(["🧑‍🎓 Customer<br/>fills the Google Form"]) --> S1[("📄 Form Responses<br/>sheet")]
 
-- **`.env.local`**: The secret configuration file. It holds your Service Account email, private key, and Google Sheet ID. (Never share this file online).
-- **`lib/googleSheets.ts`**: The file that tells the "robot user" how to talk to Google Sheets. It has the logic for reading the rows and updating cells.
-- **`lib/types.ts`**: This file maps the columns in your Google Sheet to the code. If you ever add a new column to your sheet (like "Delivery Address"), you would add it here so the code knows about it.
-- **`app/actions/orders.ts`**: The "actions" file. This is where the logic lives that handles fetching orders and securely sending updates to Google Sheets.
-- **`components/columns.tsx`**: The code that designs the table columns. This is where we define what the Badges look like, what options are in the dropdowns, and where the WhatsApp button links to.
-- **`components/orders-dashboard.tsx`**: The main layout of the page (the stats cards at the top, the search bar, the tabs).
+    subgraph A1["⚙️ Workflow 1 · Order Intake v2"]
+      direction LR
+      N["Normalize the messy form answer"] --> P["Price it<br/>(A3 / A4, 1 or 5-pack)"]
+      P --> V{"Quantities, designs &<br/>catalog numbers valid?"}
+      V -- yes --> F["Create Drive folders<br/>Order › FINAL › A3 / A4"]
+      V -- no --> H["Write row as<br/>ON HOLD · NEEDS FIXING<br/>+ the reason"]
+    end
+
+    S1 --> N
+    F --> W[("📊 orders sheet")]
+    H --> W
+
+    subgraph A2["🪄 Workflow 2 · Auto Upscale"]
+      direction LR
+      D["Download each image"] --> U["Upscayl · Real-ESRGAN<br/>300 DPI (or 400 DPI HQ mode)"]
+      U --> R["Replace the old file<br/>in FINAL / A3 · A4"]
+    end
+
+    F --> D
+    R --> AR["🔎 AWAITING REVIEW"]
+
+    AR --> T(["👩‍💻 You check the images<br/>and click READY"])
+
+    subgraph A3["📦 Workflow 3 · Fulfillment & Dispatch v2"]
+      direction LR
+      M["Copy to MASTER A3 / A4<br/>(the print folders)"] --> L["Share the folder<br/>+ build the WhatsApp message"]
+    end
+
+    T --> M
+    L --> Z(["💬 One tap on Send<br/>customer gets the message"])
+
+    classDef good fill:#d1fae5,stroke:#10b981,color:#064e3b;
+    classDef bad fill:#fee2e2,stroke:#ef4444,color:#7f1d1d;
+    classDef you fill:#ede9fe,stroke:#8b5cf6,color:#3b0764;
+    class F,R,L,M good;
+    class H bad;
+    class T,Z you;
+```
+
+The only manual steps left in the whole business are the two that need a human eye: **checking the finished images** and **clicking READY**.
 
 ---
 
-## 4. Running the Project
+## 🖥️ The admin dashboard
 
-To run the dashboard locally on your computer:
+A Next.js dashboard that sits on top of the same Google Sheet. It reads orders, shows what needs attention, lets you change statuses, and fires the dispatch workflow with a single click.
 
-1. Open your terminal in this folder (`n8n`).
-2. Make sure you have installed everything by running:
+<div align="center">
+
+**Orders table** — dark theme
+
+<img src="docs/images/orders-dark.png" alt="Orders table, dark theme" width="100%"/>
+
+<br/><br/>
+
+<table>
+<tr>
+<td width="50%" align="center"><b>Dashboard · light</b><br/><img src="docs/images/dashboard-light.png" alt="Dashboard light theme"/></td>
+<td width="50%" align="center"><b>Dashboard · dark</b><br/><img src="docs/images/dashboard-dark.png" alt="Dashboard dark theme"/></td>
+</tr>
+<tr>
+<td colspan="2" align="center"><b>Orders table · light</b><br/><img src="docs/images/orders-light.png" alt="Orders table light theme"/></td>
+</tr>
+</table>
+
+<sub>🔒 Screenshots use fictional sample data (<code>DEMO_MODE</code>) — no real customers are shown.</sub>
+
+</div>
+
+**Highlights**
+
+- 📊 Live stat cards: total orders, action required, revenue, profit, A3 / A4 prints.
+- 🎨 Colour-coded status badges for every stage of the pipeline.
+- 🛡️ **Safety guard:** the `READY` option is **disabled while an order is still queued or upscaling**, so a wrong click can never print the old low-quality file.
+- 🔎 Tabs (All / Action Required / Completed) and search by order ID or name.
+- 💬 A green **Send** button appears the moment the WhatsApp message is ready; **Files** jumps straight to the order's Drive folder.
+- 🧪 **Demo mode** — run the whole UI on made-up orders, no Google credentials required (see [Quick start](#-quick-start)).
+
+---
+
+## 🔁 The life of an order (status lifecycle)
+
+```mermaid
+stateDiagram-v2
+    direction LR
+    [*] --> UPSCALING: valid order
+    [*] --> ON_HOLD: needs fixing
+    ON_HOLD: ON HOLD
+    ON_HOLD --> [*]: contact the customer
+    UPSCALING --> AWAITING_REVIEW: images upscaled
+    UPSCALING --> UPSCALE_ISSUE: an image failed
+    UPSCALE_ISSUE: UPSCALE ISSUE
+    AWAITING_REVIEW: AWAITING REVIEW
+    UPSCALE_ISSUE --> AWAITING_REVIEW: fixed manually
+    AWAITING_REVIEW --> READY: you click READY
+    READY --> [*]: copied to print folders + WhatsApp link built
+```
+
+| Status | Meaning | What you do |
+|---|---|---|
+| `UPSCALING` | Images are being upscaled | Nothing, wait |
+| `QUEUED HQ` / `UPSCALING HQ` | Waiting for / running the maximum-quality re-upscale | Wait — **don't** set READY |
+| `AWAITING REVIEW` | Everything upscaled and sitting in `FINAL/A3` / `FINAL/A4` | Look at the images, then click **READY** |
+| `UPSCALE ISSUE` | One image failed (the reason is in *Notes*) | Ask for a new upload or fix it by hand |
+| `ON HOLD` / `NEEDS FIXING` | The form answer didn't add up (reason in *Notes*) | Message the customer |
+| `READY` | You approved it | Dispatch runs automatically |
+
+---
+
+## 💸 Pricing
+
+| Size | 1 poster | 5 posters |
+|---|:---:|:---:|
+| **A3** (297 × 420 mm) | **₹60** | **₹250** |
+| **A4** (210 × 297 mm) | **₹40** | **₹170** |
+
+Prices are calculated in two places that always agree: the **Calculate Price** node of *Order Intake v2* (new orders) and the **Generate WhatsApp Link** node of *Fulfillment & Dispatch v2* (re-calculated from the quantities, shown as the order total and written back to the sheet). Packs are applied automatically: `packs × pack price + remainder × single price`. The dashboard has **no hard-coded selling prices** — it just reads *A3 Price / A4 Price / Total Price* from the sheet.
+
+---
+
+## 🧩 The three workflows
+
+> Files live in [`workflows-v2/`](workflows-v2). Import them into n8n and connect your Google credentials.
+
+### 1 · Order Intake v2
+Triggered by every new Google Form row.
+
+- 🧹 **Normalizes** the raw form (the form has several differently-named columns for the same thing — A3-only, A4-only and "both" sections).
+- 💰 **Prices** the order.
+- ✅ **Validates**: quantity must equal the number of designs; every catalog number must exist and be active; numbers typed as `21 101 166`, `21,101,166` or even a number Google Sheets mangled are all understood.
+- 🗂️ Creates only the folders that matter: `Order › FINAL › A3 / A4`.
+- 🚧 Bad orders are **still recorded** — as `ON HOLD · NEEDS FIXING` with the reason in *Notes* — but nothing else runs for them.
+- 🪄 Hands every good order to the upscaler.
+
+### 2 · Auto Upscale
+The step that used to be done by hand, image by image.
+
+| | Normal mode | Maximum-quality (HQ) mode |
+|---|---|---|
+| Model | Real-ESRGAN `high-fidelity-4x` (Upscayl) | same |
+| Target | **300 DPI** — A3 `3508 × 4961`, A4 `2480 × 3508` | **400 DPI** — A3 `4677 × 6614`, A4 `3307 × 4677` |
+| Extra | — | **TTA** (8-pass) for small sources (< 2 MP) |
+| Already ≥ 300 DPI? | copied untouched | copied untouched |
+| Tiny image? | second AI pass until the target is reached | same |
+
+Smart details:
+
+- 🚫 **Never crops or distorts.** If a photo isn't A-series shaped, the order's *Notes* get a *"check crop"* warning instead.
+- ♻️ **Idempotent.** Re-running an image replaces the old file (the old one goes to Drive's trash), so nothing is printed twice.
+- 🧵 **One GPU job at a time** (a lock in the script), so a busy night doesn't melt the laptop.
+- 📝 Writes a summary to *Notes*: how many images were upscaled, kept as-is, failed, or need a crop check.
+- Runs on the machine that hosts n8n, using [Upscayl](https://upscayl.org)'s bundled engine — **free, offline, no API costs**.
+
+### 3 · Fulfillment & Dispatch v2
+Triggered when *Design Status* becomes `READY` (and only then — it ignores every other edit, and never runs twice for the same order).
+
+- 📂 Copies the finished files into `MASTER A3` / `MASTER A4`, prefixed with the customer's name.
+- 🔗 Shares the order's `FINAL` folder so the customer can preview their exact prints.
+- 💬 Builds the personalised WhatsApp message and a click-to-send link, then writes the link and the recalculated prices back to the sheet.
+
+The message the customer receives:
+
+> Hi *Name*! Your IMPOSTER order is received and we are verifying your payment screenshot.
+>
+> Please check this folder link to verify your chosen designs … *(folder link)*
+>
+> Your order:
+> A3 x 5 = ₹250
+> A4 x 2 = ₹80
+> Total: ₹330
+>
+> Please check your designs in the folder above. If everything is correct and the quality looks good, just reply *Everything fine* and we will start printing. If you want to put a higher quality image, reply here with your new file and we will replace it before printing.
+>
+> We will process your print and deliver it to your hostel soon!
+
+(Cash customers get the same text with a note that payment is collected in advance.)
+
+---
+
+## 🐛 Real bugs we hit (and what they taught us)
+
+None of this was built to look good on GitHub — a lot broke along the way, and every bug said something true about the business underneath.
+
+| Bug | What was really going on |
+|---|---|
+| 🔢 `104,126,134,168,169` became **104126134168169** | Google Sheets saw a list that *looks* like a number with thousands separators and silently converted it. The parser now splits such values back into design numbers. |
+| 🔁 Orders silently stopped for weeks | The Google login stored in n8n expired (an OAuth app in *Testing* mode expires tokens about weekly). Lesson: publish the OAuth consent screen, and watch the executions page. |
+| 🧮 Only the *first* image of each order was upscaled | n8n's *Execute Command* node runs once per batch, no matter how many items come in. The command now handles a whole order in one go. |
+| 🎯 A4-only orders created phantom A3 files | One generic upload column was being read for both sizes. |
+| ♻️ Editing any cell re-fired the dispatch | The trigger watched a column but never checked it equalled `READY`. |
+| 📚 Catalog stopped at design 120 | The index, the form parser and the sheet disagreed on the range; designs 121–179 now live in Drive and the sheet. |
+| 🖱️ Clicking READY too early printed old files | The dashboard now blocks `READY` while an order is queued or upscaling. |
+
+---
+
+## 🚀 Quick start
+
+### Run the dashboard in demo mode (no credentials needed)
+
+```bash
+npm install
+DEMO_MODE=true npm run dev
+```
+
+Open <http://localhost:3000>. You get made-up orders in every status; changes are read-only.
+
+### Run it against your own Google Sheet
+
+1. Create a **Google Service Account**, download its key, and **share your sheet with its e-mail address (Editor)**.
+2. Create `.env.local`:
+
    ```bash
-   npm install
+   GOOGLE_CLIENT_EMAIL=imposter-dashboard@your-project.iam.gserviceaccount.com
+   GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+   GOOGLE_SHEET_ID=your-sheet-id
+   GOOGLE_SHEET_NAME=orders        # optional, defaults to "orders"
    ```
-3. Start the development server by running:
+3. `npm run dev` → <http://localhost:3000>.
+
+> The dashboard talks **only to Google Sheets**. n8n watches the same sheet, so changing a status in the dashboard is what wakes the workflows up — no direct connection needed, and pausing or editing a workflow never breaks the dashboard.
+
+### Set up the n8n side
+
+1. Install [Upscayl](https://upscayl.org) and run `bash workflows-v2/setup.sh` (installs the upscale script into `~/.n8n-files/imposter/`).
+2. Start n8n with the *Execute Command* node enabled (n8n 2.x blocks it by default):
+
    ```bash
-   npm run dev
+   NODES_EXCLUDE='[]' n8n start
    ```
-4. Open your browser and go to `http://localhost:3000`.
+3. Import the three files from [`workflows-v2/`](workflows-v2), connect your Google credentials, and publish **Auto Upscale → Order Intake → Fulfillment & Dispatch**.
+4. Your sheet needs three tabs: `Form Responses 1` (linked to the form), `orders`, and `Catalog` (`Design No · Canva Page · Active · Drive File ID`).
+
+> 💡 Keep the machine awake and plugged in while a big batch upscales — closing the lid pauses everything.
 
 ---
-<img width="2048" height="1153" alt="image" src="https://github.com/user-attachments/assets/4b6e53c7-1c2c-41de-9a0d-321016695e5b" />
 
+## 🗂️ Project structure
 
-## Frequently Asked Questions
+```
+├── app/                    Next.js app (dashboard + orders pages, server actions)
+├── components/             Table columns, status badges, stat cards, theme toggle
+├── lib/
+│   ├── googleSheets.ts     Reads/updates the sheet (or serves demo data)
+│   ├── demoOrders.ts       Fictional sample orders for DEMO_MODE
+│   └── types.ts            Sheet column map + status types & safety rules
+├── workflows-v2/           The three n8n workflows + the upscale script
+│   ├── IMPOSTER — Order Intake v2.json
+│   ├── IMPOSTER — Auto Upscale.json
+│   ├── IMPOSTER — Fulfillment & Dispatch v2.json
+│   ├── imposter-upscale.sh   Upscayl / Real-ESRGAN wrapper
+│   └── setup.sh              One-time installer
+├── docs/images/            README banner + screenshots
+└── IMPOSTER — *.json       First-iteration workflows (kept for history)
+```
 
-**Will changing something in my n8n server break this dashboard?**
-NO. The dashboard is completely decoupled from n8n. The dashboard only talks to Google Sheets.
-- If you change the steps *inside* your n8n workflow (e.g., you change the message template it sends), the dashboard will not break.
-- Because they don't talk directly, you can pause, edit, or even delete your n8n workflow, and the dashboard will continue working perfectly (it will just keep updating Google Sheets like normal).
+---
 
-**What happens if I change the Google Sheet columns?**
-If you rearrange the columns, rename the headers, or add new columns in the middle of your sheet, the dashboard might get confused because it reads data based on the exact column locations defined in `lib/types.ts`. If you modify your sheet structure heavily, you will need to update the `COLUMN_MAP` in `lib/types.ts` to match the new layout.
+## ❓ FAQ
 
+**Will changing something in n8n break the dashboard?**
+No. They are decoupled — the dashboard only reads and writes the Google Sheet.
 
+**What if I rearrange the sheet's columns?**
+The dashboard reads columns by position. If you add, remove or reorder columns, update `COLUMN_MAP` in [`lib/types.ts`](lib/types.ts).
 
-the workflows are---
-IMPOSTER — Order Intake.json and 
-IMPOSTER — Fulfillment & Dispatch.json
+**Can a customer change their files after receiving the message?**
+The folder link is **view-only** on purpose. They reply on WhatsApp with a new image and you replace it in `FINAL` *and* in `MASTER` (the print copy is made the moment you click READY).
 
+**Is the upscaling really free?**
+Yes — Upscayl's Real-ESRGAN engine runs locally on the n8n machine. The trade-off is that the machine must be on; top-quality (HQ) mode takes roughly 10 minutes per small image.
+
+---
+
+## 🛣️ What's next
+
+- [ ] Real WhatsApp sending (Cloud API) instead of a click-to-send link
+- [ ] Payment auto-verification
+- [ ] A "customer confirmed" status so printing only starts after the customer's *Everything fine*
+- [ ] Failure alerts and a daily summary message
+
+---
+
+<div align="center">
+
+Built because the same boring steps kept showing up — and a predictable step shouldn't be done by hand a tenth time. 🖨️
+
+**IMPOSTER** · made with n8n, Next.js and a lot of Drive folders
+
+</div>

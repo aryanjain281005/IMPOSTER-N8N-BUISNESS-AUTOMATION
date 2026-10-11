@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { DataTable } from "@/components/data-table";
 import { getColumns } from "@/components/columns";
 import type { Order } from "@/lib/types";
+import { NEEDS_ATTENTION } from "@/lib/types";
 import {
   Search,
   AlertTriangle,
@@ -45,7 +46,7 @@ export function OrdersTableView({ orders }: { orders: Order[] }) {
     switch (activeTab) {
       case "action":
         return optimisticOrders.filter(
-          (o) => o.paymentStatus === "PENDING" || o.designStatus === "WAITING"
+          (o) => o.paymentStatus === "PENDING" || NEEDS_ATTENTION.includes(o.designStatus)
         );
       case "completed":
         return optimisticOrders.filter((o) => o.orderStatus === "COMPLETED");
@@ -56,7 +57,7 @@ export function OrdersTableView({ orders }: { orders: Order[] }) {
 
   const total = optimisticOrders.length;
   const actionRequired = optimisticOrders.filter(
-    (o) => o.paymentStatus === "PENDING" || o.designStatus === "WAITING"
+    (o) => o.paymentStatus === "PENDING" || NEEDS_ATTENTION.includes(o.designStatus)
   ).length;
 
   return (

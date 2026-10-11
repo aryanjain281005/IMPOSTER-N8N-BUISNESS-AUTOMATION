@@ -2,11 +2,31 @@
 // Based on the actual Google Sheet column structure
 
 export type PaymentStatus = "PENDING" | "PAID";
-export type DesignStatus = "WAITING" | "READY";
+export type DesignStatus =
+  | "WAITING"
+  | "UPSCALING"
+  | "QUEUED HQ"
+  | "UPSCALING HQ"
+  | "UPSCALE ISSUE"
+  | "AWAITING REVIEW"
+  | "ON HOLD"
+  | "READY";
+
+/** Statuses where the automatic upscaling is still running or blocked: READY must not be set yet. */
+export const NOT_READY_FOR_DISPATCH: DesignStatus[] = [
+  "UPSCALING",
+  "QUEUED HQ",
+  "UPSCALING HQ",
+  "UPSCALE ISSUE",
+  "ON HOLD",
+];
+
+/** Statuses that need a human to look at the order. */
+export const NEEDS_ATTENTION: DesignStatus[] = ["WAITING", "AWAITING REVIEW", "UPSCALE ISSUE", "ON HOLD"];
 export type PaymentMode = "Cash" | "Online" | "UPI";
 export type PrintStatus = "NOT_READY" | "PENDING" | "PRINTING" | "DONE";
 export type WhatsAppStatus = "NOT_SENT" | "SENT";
-export type OrderStatus = "NEW" | "PROCESSING" | "COMPLETED" | "CANCELLED" | "DELIVERED" | "RECEIVED";
+export type OrderStatus = "NEW" | "PROCESSING" | "COMPLETED" | "CANCELLED" | "DELIVERED" | "RECEIVED" | "NEEDS FIXING";
 
 export interface Order {
   orderId: string;

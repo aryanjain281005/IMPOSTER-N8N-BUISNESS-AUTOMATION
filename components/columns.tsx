@@ -21,11 +21,31 @@ import type {
   PaymentStatus,
   DesignStatus,
 } from "@/lib/types";
+import { NOT_READY_FOR_DISPATCH } from "@/lib/types";
 import {
   updatePaymentStatusAction,
   updateDesignStatusAction,
   updateMainOrderStatusAction,
 } from "@/app/actions/orders";
+
+// Badge colour for every Design Status the n8n workflows can write.
+function designBadge(status: DesignStatus) {
+  switch (status) {
+    case "READY":
+      return "info" as const;
+    case "AWAITING REVIEW":
+      return "success" as const;
+    case "UPSCALING":
+    case "UPSCALING HQ":
+    case "QUEUED HQ":
+      return "purple" as const;
+    case "UPSCALE ISSUE":
+    case "ON HOLD":
+      return "destructive" as const;
+    default:
+      return "warning" as const;
+  }
+}
 
 // WhatsApp SVG icon component for the branded button
 function WhatsAppIcon({ className }: { className?: string }) {
@@ -216,7 +236,7 @@ export function getColumns(
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-1 cursor-pointer focus:outline-none group">
                 <Badge
-                  variant={status === "READY" ? "info" : "warning"}
+                  variant={designBadge(status)}
                   className="transition-all group-hover:ring-2 group-hover:ring-ring group-hover:ring-offset-1"
                 >
                   {status}
@@ -226,10 +246,13 @@ export function getColumns(
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
               <DropdownMenuLabel>Update Design</DropdownMenuLabel>
-              {(["WAITING", "READY"] as DesignStatus[]).map((val) => (
+              {(["WAITING", "AWAITING REVIEW", "READY"] as DesignStatus[]).map((val) => (
                 <DropdownMenuItem
                   key={val}
-                  disabled={val === status}
+                  disabled={
+                    val === status ||
+                    (val === "READY" && NOT_READY_FOR_DISPATCH.includes(status))
+                  }
                   onClick={async () => {
                     onOptimisticUpdate(order.rowIndex, "designStatus", val);
                     const result = await updateDesignStatusAction(
@@ -247,15 +270,14 @@ export function getColumns(
                     }
                   }}
                 >
-                  <Badge
-                    variant={val === "READY" ? "info" : "warning"}
-                    className="text-xs"
-                  >
+                  <Badge variant={designBadge(val)} className="text-xs">
                     {val}
                   </Badge>
                   {val === "READY" && (
                     <span className="text-[10px] text-muted-foreground ml-1">
-                      (triggers webhook)
+                      {NOT_READY_FOR_DISPATCH.includes(status)
+                        ? "(wait: upscaling not finished)"
+                        : "(starts dispatch)"}
                     </span>
                   )}
                 </DropdownMenuItem>

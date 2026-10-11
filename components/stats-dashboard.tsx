@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import type { Order } from "@/lib/types";
+import { NEEDS_ATTENTION } from "@/lib/types";
 import {
   Package,
   AlertTriangle,
@@ -18,7 +19,7 @@ export function StatsDashboard({ orders }: { orders: Order[] }) {
   const stats = useMemo(() => {
     const total = orders.length;
     const actionRequired = orders.filter(
-      (o) => o.paymentStatus === "PENDING" || o.designStatus === "WAITING"
+      (o) => o.paymentStatus === "PENDING" || NEEDS_ATTENTION.includes(o.designStatus)
     ).length;
     const completed = orders.filter(
       (o) => o.orderStatus === "COMPLETED"
